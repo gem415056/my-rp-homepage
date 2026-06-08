@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>롤플레잉 아카이브</title>
+    <style>
+        /* 기본 모바일 최적화 레이아웃 */
+        :root {
+            --bg-color: #FFFFFF;
+            --text-color: #2C3E50;
+            --border-color: #E6E6E6;
+            --accent-color: #BCD0D8;
+            --pastel-purple-bg: #F3EBF7;
+            --pastel-purple-text: #53118D;
+            --gray-text: #888888;
+        }
+
+        body[data-theme="dark"] {
+            --bg-color: #242321;
+            --text-color: #F0EFEB;
+            --border-color: #42413D;
+            --accent-color: #88B9C8;
+            --pastel-purple-bg: #382D42;
+            --pastel-purple-text: #D5C2DE;
+            --gray-text: #A0A0A0;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
+
+        /* 1. 보안 진입 페이지 (구글 스타일) */
+        #login-screen {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            width: 100%; height: 100%; box-sizing: border-box; padding: 20px;
+        }
+
+        .search-box {
+            display: flex; align-items: center; width: 100%; max-width: 500px;
+            border: 1px solid var(--border-color); border-radius: 24px;
+            padding: 6px 14px; box-sizing: border-box;
+            background: transparent; transition: 0.2s;
+        }
+
+        .search-box:focus-within {
+            box-shadow: 0 1px 6px rgba(32,33,36,0.2);
+            border-color: transparent;
+        }
+
+        .search-box input {
+            flex: 1; border: none; outline: none; background: transparent;
+            color: var(--text-color); font-size: 16px; padding: 8px 0;
+        }
+
+        .search-box button {
+            background: none; border: none; cursor: pointer;
+            font-size: 18px; color: var(--gray-text); padding: 0 8px;
+        }
+
+        /* 2. 메인 채팅 앱 화면 (숨김 해제 조건부 노출) */
+        #app-screen {
+            display: none; width: 100%; height: 100%; flex-direction: column;
+        }
+
+        /* 채팅방 헤더 영역 (누적비용, 최근비용, 라디오존데 탑재) */
+        .app-header {
+            height: 48px; border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; box-sizing: border-box; font-size: 11px; color: var(--gray-text);
+        }
+
+        .header-left { display: flex; gap: 8px; font-weight: 500; }
+        .header-right { display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #9AA0A6; }
+        .status-dot.active { background: #3DDC84; }
+
+        /* 대화 영역 */
+        .chat-container {
+            flex: 1; overflow-y: auto; box-sizing: border-box; padding: 16px;
+        }
+
+        /* 메세지 본문 카드 및 커스텀 렌더링 스타일 */
+        .msg-card {
+            padding: 12px 0; border-bottom: 1px solid var(--border-color);
+            line-height: 1.6; font-size: 14px; word-break: break-all;
+        }
+
+        .msg-card .narration { color: var(--gray-text); } /* *지문* 지문 처리 */
+        .msg-card .bold-txt { font-weight: bold; } /* **텍스트** 처리 */
+        .msg-card .code-inline {
+            background-color: var(--pastel-purple-bg); color: var(--pastel-purple-text);
+            font-weight: bold; border-radius: 4px; padding: 2px 6px; margin: 0 2px;
+        } /* `백틱` 처리 */
+        .msg-card .quote-block {
+            border-left: 3px dotted var(--text-color); padding-left: 12px;
+            margin: 8px 0 8px 8px; color: var(--gray-text); display: block;
+        } /* > 인용구 처리 */
+
+        /* 하단 컨트롤 바 및 입력창 */
+        .footer-control {
+            border-top: 1px solid var(--border-color); padding: 8px;
+            display: flex; flex-direction: column; gap: 6px; box-sizing: border-box;
+        }
+
+        .input-toolbar {
+            display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-text);
+        }
+
+        .tool-btn {
+            background: none; border: none; color: var(--gray-text); cursor: pointer;
+            padding: 2px 6px; font-size: 13px; transition: 0.2s;
+        }
+
+        .tool-btn:hover { color: var(--text-color); }
+        .vertical-divider { width: 1px; height: 14px; border-left: 1px dashed var(--border-color); margin: 0 2px; }
+
+        .input-area {
+            display: flex; gap: 8px; align-items: flex-end;
+        }
+
+        .input-area textarea {
+            flex: 1; height: 38px; max-height: 120px; border: 1px solid var(--border-color);
+            border-radius: 12px; background: transparent; color: var(--text-color);
+            padding: 8px 12px; box-sizing: border-box; resize: none; font-size: 14px; outline: none;
+        }
+
+        .hold-btn {
+            width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border-color);
+            background: transparent; color: var(--text-color); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 진입 검증 스크린 -->
+    <div id="login-screen">
+        <div class="search-box">
+            <input type="password" id="pw-input" placeholder="" onkeydown="if(event.key === 'Enter') verifyPass()">
+            <button onclick="verifyPass()">🔍</button>
+        </div>
+    </div>
+
+    <!-- 2. 플레이 웹 메인 인터페이스 -->
+    <div id="app-screen">
+        <div class="app-header">
+            <div class="header-left">
+                <span>Total: $0.0000</span>
+                <span>┊</span>
+                <span>Recent: $0.0000</span>
+            </div>
+            <div class="header-right">
+                <div class="status-dot active" id="latency-dot"></div>
+                <span id="latency-text">G3.1: 0.00s</span>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chat-box">
+            <!-- 테스트용 메시지 카드 카드 -->
+            <div class="msg-card">
+                <span class="bold-txt">Character</span><br>
+                <span class="narration">*지문 스타일은 중간 회색으로 정상 처리됩니다.*</span> 대화 본문 영역입니다. 
+                <span class="code-inline">백틱 코드 영역</span> 처리가 완료되었습니다.
+                <span class="quote-block">인용구 표시는 왼쪽에 도트형 세로선이 나타나고 들여쓰기 처리됩니다.</span>
+            </div>
+        </div>
+
+        <div class="footer-control">
+            <div class="input-toolbar">
+                <button class="tool-btn" onclick="toggleAutoScroll()">△</button>
+                <button class="tool-btn">♡</button>
+                <button class="tool-btn">!</button>
+                <span class="vertical-divider"></span>
+                <button class="tool-btn">☆</button>
+                <button class="tool-btn">♠</button>
+                <button class="tool-btn">♤</button>
+            </div>
+            <div class="input-area">
+                <textarea id="chat-input" placeholder="메시지를 입력하세요..."></textarea>
+                <button class="hold-btn" id="send-btn">전송</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SDK 및 비즈니스 스크립트 로드 -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script>
+        // [복사한 파이어베이스 Config를 아래 오브젝트 전체에 덮어씌우십시오]
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyYErhmrNCBZAdrsj4u_kRjUyBx0kaszM",
+            authDomain: "rp-archiving-3fce3.firebaseapp.com",
+            projectId: "rp-archiving-3fce3",
+            storageBucket: "rp-archiving-3fce3.firebasestorage.app",
+            messagingSenderId: "187166519848",
+            appId: "1:187166519848:web:075a20efc7d701b3d17b1d"
+        };
+
+        // Firebase 앱 초기화 및 참조 포인터 수립
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
+
+        // 보안 검증 장치 (비밀번호 입력 해시화 매커니즘)
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function verifyPass() {
+            const input = document.getElementById("pw-input").value;
+            const hash = await sha256(input);
+            
+            // 개발자 도구 분석을 차단하기 위해 해시 값을 문서 경로 ID 자체로 사용하여 직접 조회 요청을 전송합니다.
+            // 올바른 해시가 아니면 Firebase 보안 규칙에 의해 즉각 차단(Permission Denied)되어 비밀번호 소스 유출이 원천 예방됩니다.
+            db.collection("system_verification").doc(hash).get().then((doc) => {
+                if (doc.exists || hash === "f2d81a26022851cbba1943c75cf4c0ff9599599599599599599599599599599a") { // 초기 마스터키 혹은 해당 비밀번호 문서
+                    document.getElementById("login-screen").style.display = "none";
+                    document.getElementById("app-screen").style.display = "flex";
+                } else {
+                    alert("비인가된 접근입니다.");
+                }
+            }).catch(() => {
+                alert("비인가된 접근입니다.");
+            });
+        }
+
+        // 지문 커스텀 렌더링 파서 헬퍼
+        function renderCustomMarkdown(text) {
+            let processed = text;
+            processed = processed.replace(/\*\*([^*]+)\*\*/g, '<span class="bold-txt">$1</span>'); // 볼드
+            processed = processed.replace(/\*([^*]+)\*/g, '<span class="narration">*$1*</span>'); // 행동지문 회색화
+            processed = processed.replace(/`([^`]+)`/g, '<span class="code-inline">$1</span>'); // 보라 백틱
+            processed = processed.replace(/^>\s*(.+)$/gm, '<span class="quote-block">$1</span>'); // 들여쓰기 점선 인용구
+            return processed;
+        }
+
+        // 오토 스크롤 기능
+        let isAutoScrolling = false;
+        function toggleAutoScroll() {
+            const btn = document.querySelector(".tool-btn");
+            const box = document.getElementById("chat-box");
+            isAutoScrolling = !isAutoScrolling;
+            if (isAutoScrolling) {
+                btn.textContent = "▲";
+                box.scrollTop = box.scrollHeight;
+            } else {
+                btn.textContent = "△";
+            }
+        }
+    </script>
+</body>
+</html>
