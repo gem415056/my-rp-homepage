@@ -381,6 +381,22 @@
             display: flex; align-items: center; justify-content: center; padding: 4px; transition: 0.2s;
         }
         .sc-save-btn:hover { color: var(--active-purple); }
+
+        /* 플로팅 팝오버 선택창 및 모바일 친화형 둥근 보라 배지 스타일 완벽 구현 */
+        .msg-card .sc-badge {
+            display: inline-block; border: 1.5px solid var(--active-purple);
+            border-radius: 6px; padding: 1px 8px; font-size: 13px; font-weight: bold;
+            color: var(--text-color); background-color: var(--pastel-purple-bg);
+            margin: 0 3px; box-sizing: border-box; vertical-align: middle;
+        }
+        .sc-popover-container {
+            display: none; position: absolute; bottom: 165px; left: 36px;
+            width: 220px; height: 220px; background-color: var(--bg-color);
+            border: 1px solid var(--border-color); border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 25;
+            flex-direction: column; padding: 12px; box-sizing: border-box;
+        }
+        .sc-popover-container.active { display: flex; }
     </style>
 </head>
 <body>
@@ -589,7 +605,17 @@
                 </div>
                 <!-- 36px 마진 대화창 -->
                 <div class="chat-container" id="chat-box"></div>
-                <div class="footer-control">
+                <div class="footer-control" style="position:relative;">
+                    
+                    <!-- [요구사항 반영] 툴바 바로 위에 가로세로 정대칭(220px) 둥글게 플로팅되는 우측 ✕ 마크형 단축어 팝오버 -->
+                    <div class="sc-popover-container" id="shortcut-select-modal">
+                        <div class="card-subheader" style="color:var(--text-color); font-size:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>단축어 선택</span>
+                            <span style="cursor:pointer; font-weight:bold; font-size:12px;" onclick="closeShortcutSelectModal()">✕</span>
+                        </div>
+                        <div id="shortcut-select-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; box-sizing:border-box;"></div>
+                    </div>
+
                     <div class="input-toolbar">
                         <button class="tool-btn" onclick="toggleAutoScroll()">△</button>
                         <button class="tool-btn">♡</button>
@@ -626,15 +652,6 @@
             </div>
         </div>
 
-    </div>
-
-    <!-- 단축어 간편 선택 전용 모달 팝업 (가로막힘 및 상단 헤더 소실 오류 완전 해결형) -->
-    <div class="global-popup-overlay" id="shortcut-select-modal" onclick="if(event.target===this) closeShortcutSelectModal()">
-        <div class="global-popup-modal" style="max-width: 320px; padding: 16px; gap:8px;">
-            <div class="card-subheader" style="color:var(--text-color); font-size:13px; margin-bottom:8px;">단축어 선택</div>
-            <div id="shortcut-select-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; box-sizing:border-box;"></div>
-            <button class="btn-gray-outline" style="margin-top:4px; width:100%;" onclick="closeShortcutSelectModal()">닫기</button>
-        </div>
     </div>
 
     <!-- SDK 및 비즈니스 스크립트 로드 -->
@@ -1152,6 +1169,9 @@
             processed = processed.replace(/\*\*([^*]+)\*\*/g, '<span class="bold-txt">$1</span>');
             processed = processed.replace(/\*([^*]+)\*/g, '<span class="narration">*$1*</span>');
 
+            // [요구사항 반영] 본문 중 !단축어 명칭 감지 시 둥근 보라색 볼드 배지로 자동 연동 치환
+            processed = processed.replace(/(![가-힣a-zA-Z0-9]+)/g, '<span class="sc-badge">$1</span>');
+
             // 대화 엔터 줄바꿈 처리
             processed = processed.replace(/\n/g, '<br>');
 
@@ -1359,6 +1379,7 @@
                 };
                 list.appendChild(btn);
             });
+            // global-popup-overlay 대신 custom-popover active 클래스 활성화로 서랍 분리 작동 수립
             document.getElementById("shortcut-select-modal").classList.add("active");
         }
 
@@ -1392,17 +1413,18 @@
             return Math.ceil(tokens);
         }
 
-        // 구글 제미나이 및 파이어베이스 공식 실시간 답변 스트리밍 교신 엔진 (동적 타이핑 효과 완벽 구현)
+        // 구글 제미나이 및 외부 모듈 로드 없는 초경량 파이어베이스 REST 규격 통합 교신 엔진 (이중 분기 전송 적용 완료)
         async function sendUserMessage() {
             const inputArea = document.getElementById("chat-input");
-            let text = inputArea.value.trim();
-            if (!text || !userHash || !activeEpisodeId) return;
+            const originalInputText = inputArea.value.trim(); // DB 기록용 원본 대사 보존 (배지 렌더링 유지)
+            if (!originalInputText || !userHash || !activeEpisodeId) return;
 
-            // 지능형 매크로 단축어 치환 연동 개시 (!단축어를 실제 등록된 내용으로 백그라운드 매핑 치환)
+            // API에 탑재 전송할 백그라운드 매크로 팽창 치환 가동
+            let expandedPayloadText = originalInputText;
             for (const sc of activeShortcutsList) {
                 const triggerPattern = `!${sc.shortcut}`;
-                if (text.includes(triggerPattern)) {
-                    text = text.replaceAll(triggerPattern, sc.content);
+                if (expandedPayloadText.includes(triggerPattern)) {
+                    expandedPayloadText = expandedPayloadText.replaceAll(triggerPattern, sc.content);
                 }
             }
 
@@ -1427,10 +1449,10 @@
             inputArea.style.height = "116px"; // 5줄 높이 고정 유지
 
             try {
-                // 1. 유저 메시지 데이터베이스 저장
+                // 1. 대화창 DB 보존 시에는 원본 배지 형태(!알랑) 그대로 보존하여 가독성을 극대화합니다.
                 await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).collection("messages").add({
                     role: "user",
-                    content: text,
+                    content: originalInputText,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
@@ -1444,12 +1466,21 @@
                 const rawMessages = [];
                 msgSnapshot.forEach(doc => rawMessages.push(doc.data()));
 
-                // 4. 시작참고사항 (Cold-Start) 대조 연산
+                // 4. 시작참고사항 (Cold-Start) 및 실시간 매크로 전송용 교신 패킷 조립 가동
                 const startRef = sessionStorage.getItem("active_start_ref") || "";
                 let contents = [];
 
                 rawMessages.forEach((msg, idx) => {
                     let contentText = msg.content;
+                    
+                    // 전송 찰나에만 DB 보존용 원본 !알랑 문구를 400자 지문으로 팽창시킵니다.
+                    for (const sc of activeShortcutsList) {
+                        const triggerPattern = `!${sc.shortcut}`;
+                        if (contentText.includes(triggerPattern)) {
+                            contentText = contentText.replaceAll(triggerPattern, sc.content);
+                        }
+                    }
+
                     if (idx === 1 && msg.role === "user" && startRef) {
                         contentText = `[시작 참고 사항]\n${startRef}\n\n[내 응답]\n${contentText}`;
                     }
