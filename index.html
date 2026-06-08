@@ -399,22 +399,40 @@
         </div>
         <div class="overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-        <!-- 우측 제어 서랍 메뉴 (오른쪽 가려짐 레이아웃 탑재) -->
+        <!-- 우측 제어 서랍 메뉴 (클릭 접이식 다이내믹 탭 제어판 이식 완료) -->
         <div class="right-drawer" id="app-right-drawer">
             <div class="sidebar-header">
                 <span style="font-weight: bold; font-size: 14px;">플레이 제어</span>
                 <button class="menu-trigger" onclick="toggleRightDrawer()" style="margin-right:0;">✕</button>
             </div>
             <div class="sidebar-content">
-                <div class="sidebar-section-title">API 설정</div>
-                <div class="boxed-card" style="padding:10px; gap:8px;">
-                    <div class="input-group">
-                        <label>Google Gemini API Key</label>
-                        <input type="password" id="api-key-input" placeholder="AIzaSy..." style="font-size:12px; padding:6px;" onchange="saveApiCredentials()">
+                <!-- 아코디언 접이식 헤더 -->
+                <div class="sidebar-section-title" id="api-toggle-header" onclick="toggleApiSettingsCollapse()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; width:100%;">
+                    <span>API 설정</span>
+                    <span id="api-toggle-arrow">▶</span>
+                </div>
+                <!-- 접이식 설정 카드 박스 -->
+                <div class="boxed-card" id="api-settings-card" style="padding:12px; gap:8px; display:none; transition: 0.2s;">
+                    <!-- 로어 인젝터 방식의 상단 전환 탭바 -->
+                    <div class="tab-bar" style="margin-bottom:8px; justify-content:flex-start; gap:12px;">
+                        <div class="tabs" style="gap:8px;">
+                            <button class="tab active" id="api-tab-gemini" onclick="switchApiTab('gemini')" style="font-size:11px; padding:4px 8px;">Gemini</button>
+                            <button class="tab" id="api-tab-firebase" onclick="switchApiTab('firebase')" style="font-size:11px; padding:4px 8px;">Firebase</button>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label>Firebase Config Script</label>
-                        <textarea id="firebase-script-input" placeholder="const firebaseConfig = { ... };" style="font-size:10px; height:80px; padding:6px;" onchange="saveApiCredentials()"></textarea>
+                    <!-- 탭 1: 제미나이 키 -->
+                    <div class="api-tab-content" id="api-content-gemini" style="display:block;">
+                        <div class="input-group">
+                            <label>Google Gemini API Key</label>
+                            <input type="password" id="api-key-input" placeholder="AIzaSy..." style="font-size:12px; padding:6px;" onchange="saveApiCredentials()">
+                        </div>
+                    </div>
+                    <!-- 탭 2: 파이어베이스 스크립트 -->
+                    <div class="api-tab-content" id="api-content-firebase" style="display:none;">
+                        <div class="input-group">
+                            <label>Firebase Config Script</label>
+                            <textarea id="firebase-script-input" placeholder="const firebaseConfig = { ... };" style="font-size:10px; height:80px; padding:6px;" onchange="saveApiCredentials()"></textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="sidebar-section-title">설정 메뉴</div>
@@ -631,12 +649,16 @@
             overlay.classList.toggle("active");
         }
 
-        // [정밀 보완]: 역사적 라우팅 뒤로가기(Back) 감수 장치 결합형 패널 스위칭
+        // [정밀 보완]: 역사적 라우팅 뒤로가기(Back) 감수 장치 결합형 패널 스위칭 (세션 완전 청소 기능 탑재)
         function showPanel(panelId, isPopState = false) {
             document.querySelectorAll(".panel-container, .chat-room-container").forEach(el => el.style.display = "none");
             document.getElementById(panelId).style.display = "flex";
             if (document.getElementById("app-sidebar").classList.contains("open")) {
                 toggleSidebar();
+            }
+            if (panelId !== "chat-room-panel") {
+                // 대화방을 나가는 경우 세션에서 스토리 ID를 완전히 파괴하여 새로고침 시 홈화면이 유지되도록 합니다.
+                localStorage.removeItem("active_story_id");
             }
             if (!isPopState) {
                 // 뒤로가기 액션 취할 시 아카이브 첫 페이지(스토리 패널)로 돌아가기 위해 히스토리 유도
@@ -738,7 +760,7 @@
                 prompt: prompt,
                 startReference: startRef,
                 startMessage: startMsg,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp() // 실시간 타임스탬프 기록
             };
 
             if (isEditMode && currentStoryId) {
@@ -789,13 +811,14 @@
             }
         }
 
-        // 스토리 목록 로드 및 플레이 연동
+        // 스토리 목록 로드 및 플레이 연동 (프롬프트 저장 데이터 대조 정밀화)
         function loadStories() {
             if (!userHash) return;
             const container = document.getElementById("story-list-container");
             container.innerHTML = `<span style="font-size:12px;color:var(--gray-text);">스토리 목록 수급 중...</span>`;
 
-            db.collection("system_verification").doc(userHash).collection("stories").orderBy("updatedAt", "desc").get().then((querySnapshot) => {
+            // DB에서 최신 업데이트 순으로 안전하게 문서를 대조해 가져옵니다.
+            db.collection("system_verification").doc(userHash).collection("stories").get().then((querySnapshot) => {
                 container.innerHTML = "";
                 if (querySnapshot.empty) {
                     container.innerHTML = `<span style="font-size:12px;color:var(--gray-text);">저장된 스토리가 없습니다. '만들기' 버튼을 통해 스토리를 작성하세요.</span>`;
@@ -862,10 +885,15 @@
             }).catch(err => alert("적용 실패: " + err.message));
         }
 
-        // 지문 정밀 렌더링 파서 (엔터 줄바꿈 정상 복구 및 코드블록 줄바꿈 완전 연동 완료)
+        // 지문 정밀 렌더링 파서 (줄바꿈 소독, 인용구 굵은 실선 및 무중단 결합형 복구 완료)
         function renderCustomMarkdown(text) {
             let processed = text;
+            // 윈도우 줄바꿈 소독 (regex 연산 안정화용)
+            processed = processed.replace(/\r/g, '');
+            // HTML 특수기호 보호 처리
             processed = processed.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+            
+            // 코드 블록 격리화
             const preBlocks = [];
             processed = processed.replace(/```([\s\S]*?)```/g, function(match, code) {
                 const idx = preBlocks.length;
@@ -873,15 +901,26 @@
                 preBlocks.push('<pre><code>' + cleanCode + '</code></pre>');
                 return `@@@PRE_BLOCK_${idx}@@@`;
             });
+
+            // 인용구 변환 (실선 표시 및 마크다운 이중 이탈 처리)
+            processed = processed.replace(/^>\s*(.+)$/gm, '<span class="quote-block">$1</span>');
+
+            // 인라인 요소 및 서식 처리
             processed = processed.replace(/`([^`\n]+)`/g, '<span class="code-inline">$1</span>');
             processed = processed.replace(/\*\*([^*]+)\*\*/g, '<span class="bold-txt">$1</span>');
             processed = processed.replace(/\*([^*]+)\*/g, '<span class="narration">*$1*</span>');
-            processed = processed.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
-            processed = processed.replace(/^&gt;\s*(.+)$/gm, '<span class="quote-block">$1</span>');
+
+            // 대화 엔터 줄바꿈 처리
+            processed = processed.replace(/\n/g, '<br>');
+
+            // 연속되는 인용구 사이의 불필요한 줄바꿈 제거 (회색 실선 끊김 복구)
             processed = processed.replace(/<\/span><br><span class="quote-block">/g, '</span><span class="quote-block">');
+
+            // 격리해 둔 코드 블록 복구
             processed = processed.replace(/@@@PRE_BLOCK_(\d+)@@@/g, function(match, idx) {
                 return preBlocks[parseInt(idx)];
             });
+
             return processed;
         }
 
@@ -975,7 +1014,44 @@
             }
         }
 
-        // API 및 파이어베이스 설정값 브라우저 저장 장치
+        // API 서랍 접이식 메뉴 활성화 토글러
+        function toggleApiSettingsCollapse() {
+            const card = document.getElementById("api-settings-card");
+            const arrow = document.getElementById("api-toggle-arrow");
+            const isOpen = card.style.display !== "none";
+            
+            if (isOpen) {
+                card.style.display = "none";
+                arrow.textContent = "▶";
+            } else {
+                card.style.display = "flex";
+                arrow.textContent = "▼";
+            }
+        }
+
+        // 로어 인젝터 스타일 다이내믹 탭 전환기 및 영구 고정 장치
+        function switchApiTab(targetTab) {
+            const gTab = document.getElementById("api-tab-gemini");
+            const fTab = document.getElementById("api-tab-firebase");
+            const gContent = document.getElementById("api-content-gemini");
+            const fContent = document.getElementById("api-content-firebase");
+
+            if (targetTab === "gemini") {
+                gTab.classList.add("active");
+                fTab.classList.remove("active");
+                gContent.style.display = "block";
+                fContent.style.display = "none";
+            } else {
+                fTab.classList.add("active");
+                gTab.classList.remove("active");
+                gContent.style.display = "none";
+                fContent.style.display = "block";
+            }
+            localStorage.setItem("active_api_tab", targetTab); // 탭 선택 영구 보존
+            saveApiCredentials();
+        }
+
+        // API 및 설정값 브라우저 로컬 저장 장치
         function saveApiCredentials() {
             const key = document.getElementById("api-key-input").value.trim();
             const script = document.getElementById("firebase-script-input").value.trim();
@@ -987,9 +1063,11 @@
         function loadSavedApiCredentials() {
             const key = localStorage.getItem("gemini_api_key") || "";
             const script = localStorage.getItem("firebase_config_script") || "";
+            const activeTab = localStorage.getItem("active_api_tab") || "gemini"; // 기존 탭 기억 호출
             
             document.getElementById("api-key-input").value = key;
             document.getElementById("firebase-script-input").value = script;
+            switchApiTab(activeTab);
         }
 
         // 새로고침 시 로그인 상태 세션 자동 복원 장치 (룸 세션 완벽 보존)
