@@ -1033,35 +1033,38 @@
                 }
             });
 
-            // 대화창 실시간 동기화
+            // 대화창 실시간 동기화 (개별 메시지 비용 합산을 클라이언트 즉석 실시간 연산 방식으로 변경하여 DB 부하 완전 차단)
             if (unsubMessages) unsubMessages();
             const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = `<span style="font-size:12px;color:var(--gray-text);">대화 내역을 불러오는 중...</span>`;
 
             unsubMessages = db.collection("system_verification").doc(userHash).collection("episodes").doc(episodeId).collection("messages").orderBy("createdAt", "asc").onSnapshot((snapshot) => {
                 chatBox.innerHTML = "";
+                let accumulatedTotalCost = 0;
+                let lastTurnCost = 0;
+
                 snapshot.forEach((doc) => {
                     const msg = doc.data();
                     const card = document.createElement("div");
                     card.className = "msg-card";
                     
-                    // 더블 클릭 시 즉각 수정용 에디터 활성화 적용
-                    card.ondblclick = () => openMessageEditor(doc.id, msg.content, msg.role);
+                    // 각 메시지 카드에 실시간 누적된 공식 API 비용을 합산합니다.
+                    const cost = Number(msg.cost) || 0;
+                    accumulatedTotalCost += cost;
+                    if (cost > 0) {
+                        lastTurnCost = cost; // 가장 최근 턴의 비용
+                    }
 
                     // AI와 유저 이름표 완전 삭제 심플 분리 렌더링
                     card.innerHTML = `<span>${renderCustomMarkdown(msg.content)}</span>`;
                     chatBox.appendChild(card);
                 });
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
 
-            // 실시간 소모비용 로딩
-            db.collection("system_verification").doc(userHash).collection("episodes").doc(episodeId).onSnapshot((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    document.querySelector(".header-left span:first-of-type").textContent = `Total: $${(data.totalCost || 0).toFixed(4)}`;
-                    document.querySelector(".header-left span:last-of-type").textContent = `Recent: $${(data.recentCost || 0).toFixed(4)}`;
-                }
+                // 누적 비용 및 최근 비용 상단 헤더에 실시간 표기 반영
+                document.querySelector(".header-left span:first-of-type").textContent = `Total: $${accumulatedTotalCost.toFixed(4)}`;
+                document.querySelector(".header-left span:last-of-type").textContent = `Recent: $${lastTurnCost.toFixed(4)}`;
+
+                chatBox.scrollTop = chatBox.scrollHeight;
             });
 
             history.pushState({view: "chat-room-panel"}, "");
@@ -1149,7 +1152,7 @@
             return Math.ceil(tokens);
         }
 
-        // 구글 제미나이 API 및 파이어베이스 Vertex AI 이중 엔진 통합 전송 기능
+        // 구글 제미나이 및 외부 모듈 로드 없는 초경량 파이어베이스 REST 규격 통합 교신 엔진 (동적 임포트 오류 영구 해결)
         async function sendUserMessage() {
             const inputArea = document.getElementById("chat-input");
             const text = inputArea.value.trim();
@@ -1160,7 +1163,6 @@
             const firebaseScript = localStorage.getItem("firebase_config_script");
             const selectedModel = localStorage.getItem("gemini_active_model") || "gemini-1.5-flash";
 
-            // 선택한 탭에 맞게 타겟 입력값 유효성 정밀 대조 검증
             if (apiType === "gemini" && !apiKey) {
                 alert("우측 서랍 메뉴 [ 플레이 제어 ] 에서 Google Gemini API Key를 먼저 입력해 주십시오.");
                 toggleRightDrawer();
@@ -1219,65 +1221,43 @@
                     totalEstimatedTokens -= estimateTokenCount(removed.parts[0].text);
                 }
 
-                // 6. 이중 통신 엔진 분기 구동
+                // 6. 이중 통신 엔진 분기 구동 (외부 모듈 수급 없는 다이렉트 REST 통신)
                 let responseText = "";
                 let resJson = null;
-
                 window.activeController = new AbortController();
 
+                let url = "";
+                let headers = { "Content-Type": "application/json" };
+
                 if (apiType === "gemini") {
-                    // [엔진 A] 구글 제미나이 다이렉트 패치 교신
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
-                    const response = await fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        signal: window.activeController.signal,
-                        body: JSON.stringify({
-                            systemInstruction: { parts: [{ text: prompt }] },
-                            contents: contents
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errData = await response.json();
-                        throw new Error(errData.error?.message || "Gemini API 호출 오류");
-                    }
-
-                    resJson = await response.json();
-                    responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
+                    url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
                 } else {
-                    // [엔진 B] 파이어베이스 SDK 활용 Vertex AI 직접 교신
                     const config = parseFirebaseConfig(firebaseScript);
-                    if (!config) throw new Error("Firebase Config 분석 실패. 형식을 확인해 주십시오.");
-
-                    // 모듈러 SDK 동적 가져오기
-                    const fbAppModule = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
-                    const fbAiModule = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-ai.js");
-
-                    const tempApp = fbAppModule.initializeApp(config, "pastel-temp-" + Date.now());
-                    const ai = fbAiModule.getAI(tempApp, { backend: new fbAiModule.VertexAIBackend('global') });
-                    
-                    const fbModel = fbAiModule.getGenerativeModel(ai, {
-                        model: selectedModel,
-                        systemInstruction: prompt
-                    });
-
-                    // SDK 규격에 맞게 contents 매핑 전송
-                    const response = await fbModel.generateContent({ contents: contents });
-                    responseText = response.response.text();
-                    resJson = response.response; // 비용 산정을 위해 인계
+                    if (!config) throw new Error("Firebase Config 분석 실패. 스크립트 형식을 확인해 주십시오.");
+                    // 파이어베이스 공식 REST 주소 빌드 가동
+                    url = `https://firebasevertexai.googleapis.com/v1beta/projects/${config.projectId}/locations/global/publishers/google/models/${selectedModel}:generateContent?key=${config.apiKey}`;
                 }
 
-                if (responseText) {
-                    // 7. AI 응답 데이터베이스 영구 기록
-                    await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).collection("messages").add({
-                        role: "model",
-                        content: responseText,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: headers,
+                    signal: window.activeController.signal,
+                    body: JSON.stringify({
+                        systemInstruction: { parts: [{ text: prompt }] },
+                        contents: contents
+                    })
+                });
 
-                    // 8. 모델 설정 요율 및 실제 캐시 토큰 비례 정밀 비용(USD) 계산법 수립 (75% 캐싱 할인 완벽 동기화)
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || "REST API 교신 에러");
+                }
+
+                resJson = await response.json();
+                responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+                if (responseText) {
+                    // 7. 공식 서버가 회신한 실제 토큰 수량으로 캐싱 적용 할인 금액 연산
                     const MODEL_RATES = {
                         "gemini-3.5-flash": { input: 0.0015 / 1000, output: 0.009 / 1000, cached: 0.000375 / 1000 },
                         "gemini-3.1-pro-preview": { input: 0.002 / 1000, output: 0.012 / 1000, cached: 0.0005 / 1000 },
@@ -1296,14 +1276,12 @@
                     const uncachedTokens = Math.max(0, inTokens - cachedTokens);
                     const recentCost = (cachedTokens * rate.cached) + (uncachedTokens * rate.input) + (outTokens * rate.output);
 
-                    // 누적 비용 연산 업데이트
-                    const epDoc = await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).get();
-                    const currentTotal = epDoc.data().totalCost || 0;
-                    const nextTotal = currentTotal + recentCost;
-
-                    await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).update({
-                        recentCost: recentCost,
-                        totalCost: nextTotal
+                    // 8. 개별 AI 응답 데이터베이스에 연산 금액을 귀속해 영구 기록 (누적 쓰기 연산 배제로 DB 가벼움 유지)
+                    await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).collection("messages").add({
+                        role: "model",
+                        content: responseText,
+                        cost: recentCost, // 개별 대사 비용 귀속화
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
 
