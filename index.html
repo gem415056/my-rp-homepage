@@ -14,6 +14,7 @@
             --card-bg: #F9F9F9;
             --pastel-purple-bg: #F3EBF7;
             --pastel-purple-text: #53118D;
+            --active-purple: #D5C2DE;
             --gray-text: #888888;
             --danger-color: #FF4433;
         }
@@ -25,6 +26,7 @@
             --card-bg: #1A1918;
             --pastel-purple-bg: #382D42;
             --pastel-purple-text: #D5C2DE;
+            --active-purple: #614F73;
             --gray-text: #A0A0A0;
         }
 
@@ -113,14 +115,23 @@
         }
 
         .menu-item:hover { background-color: var(--card-bg); }
-        .sidebar-section-title { font-size: 11px; color: var(--gray-text); margin: 16px 0 8px 4px; font-weight: bold; }
+        
+        .sidebar-section-title-row {
+            display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px 4px;
+        }
+        .sidebar-section-title { font-size: 11px; color: var(--gray-text); font-weight: bold; }
+        .sidebar-action-btn { background: none; border: none; font-size: 10px; color: var(--gray-text); cursor: pointer; }
 
-        /* 대화방 목록 */
+        /* 에피소드 리스트 아이템 */
+        .episode-row {
+            display: flex; align-items: center; gap: 6px; width: 100%; box-sizing: border-box;
+        }
         .episode-item {
-            padding: 8px 12px; font-size: 13px; color: var(--text-color); cursor: pointer;
-            border-radius: 6px; transition: 0.2s;
+            flex: 1; padding: 8px 12px; font-size: 13px; color: var(--text-color); cursor: pointer;
+            border-radius: 6px; transition: 0.2s; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .episode-item:hover { background-color: var(--card-bg); }
+        .ep-edit-btn { background: none; border: none; color: var(--gray-text); cursor: pointer; padding: 4px; font-size: 11px; }
 
         /* 암전 오버레이 */
         .overlay {
@@ -154,6 +165,13 @@
         }
         .btn-gray-outline:hover { filter: brightness(0.95); }
 
+        .btn-play-theme {
+            border: 1px solid var(--border-color); background-color: var(--active-purple);
+            color: var(--text-color); padding: 8px 16px; border-radius: 8px;
+            font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-play-theme:hover { filter: brightness(0.93); }
+
         /* 지식 가두리 카드 양식 */
         .boxed-card {
             background-color: var(--card-bg); border: 1px solid var(--border-color);
@@ -161,11 +179,12 @@
             gap: 12px; box-sizing: border-box;
         }
 
-        /* 교정기 항목 양식 스토리 카드 */
+        /* 스토리 카드 디자인 */
+        .story-row-wrap { display: flex; align-items: center; gap: 8px; width: 100%; }
         .story-card {
-            background-color: var(--card-bg); border: 1px solid var(--border-color);
+            flex: 1; background-color: var(--card-bg); border: 1px solid var(--border-color);
             border-radius: 8px; padding: 16px; display: flex; justify-content: space-between;
-            align-items: center; box-sizing: border-box; transition: 0.2s;
+            align-items: center; box-sizing: border-box; transition: 0.2s; cursor: pointer;
         }
         .story-card:hover { border-color: var(--accent-color); }
         .story-info { display: flex; flex-direction: column; gap: 4px; text-align: left; }
@@ -191,18 +210,35 @@
         .char-counter { font-size: 10px; color: var(--gray-text); text-align: right; margin-top: -6px; }
         .char-counter.error { color: var(--danger-color); font-weight: bold; }
 
-        /* 대화방 내부 */
+        /* 대화방 서브 헤더 */
+        .chat-sub-header {
+            height: 38px; border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: bold; color: var(--text-color);
+            cursor: pointer; background-color: var(--bg-color);
+        }
+        .chat-sub-header:hover { text-decoration: underline; }
+
+        /* 대화방 내부 (패딩 상향 조정) */
         .chat-room-container {
             display: none; flex-direction: column; width: 100%; height: 100%; overflow: hidden;
         }
         .chat-container {
-            flex: 1; overflow-y: auto; box-sizing: border-box; padding: 16px;
+            flex: 1; overflow-y: auto; box-sizing: border-box; padding: 20px 24px;
         }
 
-        /* 메시지 디자인 (말풍선 배제, 가로실선 구분) */
+        /* 메시지 디자인 (회색 실선 구분, 마진 상향 조정) */
         .msg-card {
-            padding: 12px 0; border-bottom: 1px solid var(--border-color);
-            line-height: 1.6; font-size: 14px; word-break: break-all; text-align: left;
+            padding: 18px 0; border-bottom: 1px solid var(--border-color);
+            line-height: 1.6; font-size: 15px; word-break: break-all; text-align: left;
+        }
+
+        .sender-row { display: flex; width: 100%; margin-bottom: 8px; }
+        .msg-sender-badge {
+            display: inline-block; border: 1px solid var(--active-purple);
+            border-radius: 12px; padding: 3px 12px; font-size: 11px; font-weight: bold;
+            background-color: var(--bg-color); color: var(--text-color);
+            margin-left: auto; cursor: pointer;
         }
 
         .msg-card .narration { color: var(--gray-text); }
@@ -251,6 +287,20 @@
             display: flex; align-items: center; justify-content: center; position: relative;
             font-size: 13px; font-weight: bold; box-sizing: border-box;
         }
+
+        /* 응답교정기 스타일 전역 팝업 모달 */
+        .global-popup-overlay {
+            position: absolute; inset: 0; background-color: rgba(0,0,0,0.5);
+            z-index: 50; display: none; align-items: center; justify-content: center; padding: 16px;
+        }
+        .global-popup-overlay.active { display: flex; }
+
+        .global-popup-modal {
+            background-color: var(--bg-color); border: 1px solid var(--border-color);
+            border-radius: 16px; width: 100%; max-width: 500px; padding: 24px;
+            box-sizing: border-box; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; gap: 14px;
+        }
     </style>
 </head>
 <body>
@@ -291,9 +341,14 @@
                 <div class="menu-item" onclick="showPanel('story-panel')">🎬 스토리</div>
                 <div class="menu-item" onclick="showPanel('shortcut-panel')">⌨️ 단축어</div>
                 <div class="menu-item" onclick="showPanel('cost-panel')">💳 비용 분석</div>
-                <div class="sidebar-section-title">에피소드 내역</div>
-                <div id="episode-list">
-                    <div class="episode-item">저장된 세션이 없습니다.</div>
+                
+                <!-- 에피소드 관리 및 삭제 보조 바 -->
+                <div class="sidebar-section-title-row">
+                    <span class="sidebar-section-title">에피소드</span>
+                    <button class="sidebar-action-btn" onclick="toggleEpisodeDeleteMode()">삭제</button>
+                </div>
+                <div id="episode-list" style="display:flex; flex-direction:column; gap:4px;">
+                    <!-- Firebase 로드 에피소드 영역 -->
                 </div>
             </div>
         </div>
@@ -306,16 +361,19 @@
             <div class="panel-container" id="story-panel">
                 <div class="panel-header">
                     <span class="panel-title">스토리</span>
-                    <button class="btn-gray-outline" onclick="openStoryEditor()">만들기</button>
+                    <div>
+                        <button class="btn-gray-outline" id="story-delete-toggle-btn" onclick="toggleStoryDeleteMode()" style="margin-right:4px;">삭제</button>
+                        <button class="btn-gray-outline" onclick="openStoryEditor()">만들기</button>
+                    </div>
                 </div>
                 <div id="story-list-container" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
 
-            <!-- B. 스토리 생성/편집 독립형 에디터 화면 -->
+            <!-- B. 스토리 생성/편집 독립형 에디터 화면 (넓고 큰 입력창 및 카드 배치 완성) -->
             <div class="panel-container" id="story-editor-panel" style="display:none; padding-bottom: 40px;">
                 <div class="panel-header">
                     <button class="btn-gray-outline" onclick="showPanel('story-panel')">취소</button>
-                    <span class="panel-title">스토리 생성</span>
+                    <span class="panel-title" id="editor-title-banner">스토리 생성</span>
                     <button class="btn-gray-outline" onclick="saveStory()" id="story-save-btn">저장</button>
                 </div>
 
@@ -332,28 +390,28 @@
                     </div>
                 </div>
 
-                <!-- 섹션 2: 스토리 설정 카드 -->
+                <!-- 섹션 2: 스토리 설정 카드 (세로 길이 400px 상향 가독성 극대화) -->
                 <div class="boxed-card">
                     <div class="card-subheader">스토리 설정</div>
                     <div class="input-group">
                         <label>스토리 세계관 및 시스템 프롬프트 (최대 10,000자)</label>
-                        <textarea id="story-prompt" style="height:250px;" placeholder="스토리의 기본 세계관과 캐릭터 세부 지침을 적으세요" oninput="limitTextCount(this, 10000, 'prompt-counter')"></textarea>
+                        <textarea id="story-prompt" style="height:400px;" placeholder="스토리의 기본 세계관과 캐릭터 세부 지침을 적으세요" oninput="limitTextCount(this, 10000, 'prompt-counter')"></textarea>
                         <div class="char-counter" id="prompt-counter">0 / 10000</div>
                     </div>
                 </div>
 
-                <!-- 섹션 3: 시작 설정 카드 -->
+                <!-- 섹션 3: 시작 설정 카드 (시작장면 200px, 시작참고 150px 교체 연동) -->
                 <div class="boxed-card">
                     <div class="card-subheader">시작 설정</div>
                     <div class="input-group">
-                        <label>시작 참고 사항 (최대 1,000자 / 선택 사항)</label>
-                        <textarea id="story-start-reference" style="height:120px;" placeholder="첫 메시지 연출 시에만 한시적으로 참고할 설정이나 팁을 적으세요 (생략 가능)" oninput="limitTextCount(this, 1000, 'ref-counter')"></textarea>
-                        <div class="char-counter" id="ref-counter">0 / 1000</div>
+                        <label>시작 장면 (최대 1,000자)</label>
+                        <textarea id="story-start-message" style="height:200px;" placeholder="플레이 시작 시 캐릭터가 건넬 대사를 적으세요" oninput="limitTextCount(this, 1000, 'start-counter')"></textarea>
+                        <div class="char-counter" id="start-counter">0 / 1000</div>
                     </div>
                     <div class="input-group">
-                        <label>첫 시작 대사 (최대 1,000자)</label>
-                        <textarea id="story-start-message" style="height:150px;" placeholder="플레이 시작 시 캐릭터가 건넬 대사를 적으세요" oninput="limitTextCount(this, 1000, 'start-counter')"></textarea>
-                        <div class="char-counter" id="start-counter">0 / 1000</div>
+                        <label>시작 참고 사항 (최대 1,000자 / 선택 사항)</label>
+                        <textarea id="story-start-reference" style="height:150px;" placeholder="첫 메시지 연출 시에만 한시적으로 참고할 설정이나 팁을 적으세요 (생략 가능)" oninput="limitTextCount(this, 1000, 'ref-counter')"></textarea>
+                        <div class="char-counter" id="ref-counter">0 / 1000</div>
                     </div>
                 </div>
             </div>
@@ -370,6 +428,8 @@
 
             <!-- E. 실제 채팅 대화방 패널 -->
             <div class="chat-room-container" id="chat-room-panel">
+                <!-- 스토리 빠른 수정을 위한 중앙 상단 고정 서브 헤더 -->
+                <div class="chat-sub-header" id="active-room-header-title" onclick="openQuickPromptModal()"></div>
                 <div class="chat-container" id="chat-box"></div>
                 <div class="footer-control">
                     <div class="input-toolbar">
@@ -388,6 +448,21 @@
                 </div>
             </div>
 
+        </div>
+
+        <!-- 응답교정기 스타일 실시간 프롬프트 핫-리로드 퀵 모달 팝업 -->
+        <div class="global-popup-overlay" id="quick-prompt-modal">
+            <div class="global-popup-modal">
+                <div class="card-subheader" style="color:var(--text-color); font-size:14px; margin-bottom:8px;">스토리 설정 실시간 수정</div>
+                <div class="input-group">
+                    <textarea id="quick-story-prompt" style="height:320px;" placeholder="실시간으로 수정하여 적용할 시스템 지침을 적으세요..." oninput="limitTextCount(this, 10000, 'quick-prompt-counter')"></textarea>
+                    <div class="char-counter" id="quick-prompt-counter">0 / 10000</div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button class="btn-gray-outline" onclick="closeQuickPromptModal()">취소</button>
+                    <button class="btn-gray-outline" id="quick-save-btn" onclick="saveQuickPrompt()" style="background-color:var(--active-purple);">실시간 적용</button>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -409,8 +484,12 @@
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore(app);
 
-        // 보안 토큰용 해시 전역 변수
+        // 보안 토큰용 해시 전역 변수 및 플레이용 상태 마커
         let userHash = "";
+        let currentStoryId = ""; 
+        let isEditMode = false;
+        let isStoryDeleteMode = false;
+        let isEpisodeDeleteMode = false;
 
         // SHA-256 해싱 엔진
         async function sha256(message) {
@@ -478,6 +557,10 @@
 
         // 독립 에디터 화면 열기 및 입력폼 세척
         function openStoryEditor() {
+            isEditMode = false;
+            currentStoryId = "";
+            document.getElementById("editor-title-banner").textContent = "스토리 생성";
+            
             document.getElementById("story-title").value = "";
             document.getElementById("story-intro").value = "";
             document.getElementById("story-prompt").value = "";
@@ -491,7 +574,31 @@
             showPanel("story-editor-panel");
         }
 
-        // 파이어베이스스토리 신규 저장
+        // 스토리 수정창 진입 (기존 저장 데이터 실시간 수급)
+        function editStory(storyId) {
+            isEditMode = true;
+            currentStoryId = storyId;
+            document.getElementById("editor-title-banner").textContent = "스토리 수정";
+
+            db.collection("system_verification").doc(userHash).collection("stories").doc(storyId).get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById("story-title").value = data.title || "";
+                    document.getElementById("story-intro").value = data.intro || "";
+                    document.getElementById("story-prompt").value = data.prompt || "";
+                    document.getElementById("story-start-reference").value = data.startReference || "";
+                    document.getElementById("story-start-message").value = data.startMessage || "";
+
+                    limitTextCount(document.getElementById("story-prompt"), 10000, 'prompt-counter');
+                    limitTextCount(document.getElementById("story-start-reference"), 1000, 'ref-counter');
+                    limitTextCount(document.getElementById("story-start-message"), 1000, 'start-counter');
+
+                    showPanel("story-editor-panel");
+                }
+            }).catch(err => alert("수정 데이터 로드 실패: " + err.message));
+        }
+
+        // 파이어베이스스토리 저장 및 업데이트 수렴
         function saveStory() {
             if (!isSaveAllowed || !userHash) return;
 
@@ -506,20 +613,64 @@
                 return;
             }
 
-            db.collection("system_verification").doc(userHash).collection("stories").add({
+            const storyData = {
                 title: title,
                 intro: intro,
                 prompt: prompt,
                 startReference: startRef,
                 startMessage: startMsg,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                alert("스토리가 성공적으로 저장되었습니다.");
-                showPanel("story-panel");
-                loadStories();
-            }).catch(err => {
-                alert("저장 오류: " + err.message);
-            });
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (isEditMode && currentStoryId) {
+                // 수정 모드
+                db.collection("system_verification").doc(userHash).collection("stories").doc(currentStoryId).update(storyData).then(() => {
+                    alert("스토리가 안전하게 수정되었습니다.");
+                    showPanel("story-panel");
+                    loadStories();
+                }).catch(err => alert("수정 오류: " + err.message));
+            } else {
+                // 신규 생성 모드
+                storyData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                db.collection("system_verification").doc(userHash).collection("stories").add(storyData).then(() => {
+                    alert("스토리가 성공적으로 저장되었습니다.");
+                    showPanel("story-panel");
+                    loadStories();
+                }).catch(err => alert("저장 오류: " + err.message));
+            }
+        }
+
+        // 스토리 목록 삭제 체크박스 토글
+        function toggleStoryDeleteMode() {
+            const btn = document.getElementById("story-delete-toggle-btn");
+            isStoryDeleteMode = !isStoryDeleteMode;
+
+            if (isStoryDeleteMode) {
+                btn.textContent = "삭제 실행";
+                btn.style.backgroundColor = "var(--danger-color)";
+                btn.style.color = "#FFFFFF";
+                document.querySelectorAll(".story-delete-cb").forEach(cb => cb.style.display = "block");
+            } else {
+                // 체크된 항목들 일괄 배치 삭제
+                const checked = Array.from(document.querySelectorAll(".story-delete-cb:checked")).map(cb => cb.value);
+                if (checked.length > 0) {
+                    if (confirm(`선택한 ${checked.length}개의 스토리를 데이터베이스에서 영구 삭제하시겠습니까?`)) {
+                        const batch = db.batch();
+                        checked.forEach(id => {
+                            const ref = db.collection("system_verification").doc(userHash).collection("stories").doc(id);
+                            batch.delete(ref);
+                        });
+                        batch.commit().then(() => {
+                            alert("선택된 스토리가 영구 삭제되었습니다.");
+                            loadStories();
+                        }).catch(err => alert("삭제 실패: " + err.message));
+                    }
+                }
+                btn.textContent = "삭제";
+                btn.style.backgroundColor = "var(--card-bg)";
+                btn.style.color = "var(--text-color)";
+                document.querySelectorAll(".story-delete-cb").forEach(cb => cb.style.display = "none");
+            }
         }
 
         // 스토리 목록 로드 및 플레이 연동
@@ -528,7 +679,7 @@
             const container = document.getElementById("story-list-container");
             container.innerHTML = `<span style="font-size:12px;color:var(--gray-text);">스토리 목록 수급 중...</span>`;
 
-            db.collection("system_verification").doc(userHash).collection("stories").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+            db.collection("system_verification").doc(userHash).collection("stories").orderBy("updatedAt", "desc").get().then((querySnapshot) => {
                 container.innerHTML = "";
                 if (querySnapshot.empty) {
                     container.innerHTML = `<span style="font-size:12px;color:var(--gray-text);">저장된 스토리가 없습니다. '만들기' 버튼을 통해 스토리를 작성하세요.</span>`;
@@ -536,22 +687,56 @@
                 }
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    const card = document.createElement("div");
-                    card.className = "story-card";
-                    
-                    // [핵심 변경]: 이 카드에서 플레이 버튼 클릭 시 Firestore 내에 보존된 startMessage, startReference를 인계 전송합니다.
-                    card.innerHTML = `
-                        <div class="story-info">
-                            <span class="story-name">${data.title}</span>
-                            <span class="story-intro">${data.intro || '한 줄 소개 없음'}</span>
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "story-row-wrap";
+
+                    // 체크박스는 평소에는 숨겨져 있습니다.
+                    wrapper.innerHTML = `
+                        <input type="checkbox" class="story-delete-cb" value="${doc.id}" style="display:none; width:18px; height:18px; cursor:pointer;">
+                        <div class="story-card" onclick="if(!isStoryDeleteMode) editStory('${doc.id}')">
+                            <div class="story-info">
+                                <span class="story-name">${data.title}</span>
+                                <span class="story-intro">${data.intro || '한 줄 소개 없음'}</span>
+                            </div>
+                            <button class="btn-play-theme" onclick="event.stopPropagation(); playStory('${doc.id}', '${data.title}', \`${encodeURIComponent(data.startMessage || '')}\`, \`${encodeURIComponent(data.startReference || '')}\`)">플레이</button>
                         </div>
-                        <button class="btn-gray-outline" onclick="playStory('${doc.id}', '${data.title}', \`${encodeURIComponent(data.startMessage || '')}\`, \`${encodeURIComponent(data.startReference || '')}\`)">플레이</button>
                     `;
-                    container.appendChild(card);
+                    container.appendChild(wrapper);
                 });
+                isStoryDeleteMode = false; // 리셋
             }).catch(err => {
                 container.innerHTML = `<span style="font-size:12px;color:var(--danger-color);">로드 에러: ${err.message}</span>`;
             });
+        }
+
+        // 실시간 프롬프트 핫-리로드 퀵 모달 팝업 제어
+        function openQuickPromptModal() {
+            if (!currentStoryId) return;
+            db.collection("system_verification").doc(userHash).collection("stories").doc(currentStoryId).get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const ta = document.getElementById("quick-story-prompt");
+                    ta.value = data.prompt || "";
+                    limitTextCount(ta, 10000, 'quick-prompt-counter');
+                    document.getElementById("quick-prompt-modal").classList.add("active");
+                }
+            });
+        }
+
+        function closeQuickPromptModal() {
+            document.getElementById("quick-prompt-modal").classList.remove("active");
+        }
+
+        // 실시간 저장 후 무점검 적용 처리
+        function saveQuickPrompt() {
+            const promptVal = document.getElementById("quick-story-prompt").value.trim();
+            db.collection("system_verification").doc(userHash).collection("stories").doc(currentStoryId).update({
+                prompt: promptVal,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                closeQuickPromptModal();
+                alert("프롬프트가 실시간 적용되었습니다. 다음 응답부터 즉시 수렴됩니다.");
+            }).catch(err => alert("실시간 적용 실패: " + err.message));
         }
 
         // 지문 렌더링 파서
@@ -564,12 +749,12 @@
             return processed;
         }
 
-        // [정밀 구현]: 플레이 버튼 클릭 시 시작 설정 대사를 AI의 선제적 첫 응답으로 채팅창에 강제 렌더링합니다.
+        // 스토리 플레이 진입 (지문 마진, 폰트 상향, AI 이름표 우측 정렬 완성)
         function playStory(storyId, storyTitle, encodedStartMsg, encodedStartRef) {
             const startMsg = decodeURIComponent(encodedStartMsg);
             const startRef = decodeURIComponent(encodedStartRef);
 
-            // 해당 방을 위한 세션 스토리지 보존 (첫 API 전송 시 시작 참고사항을 매핑하기 위함)
+            currentStoryId = storyId; // 활성 룸 바인딩
             sessionStorage.setItem("active_story_id", storyId);
             sessionStorage.setItem("active_start_ref", startRef);
 
@@ -577,14 +762,50 @@
             const chatPanel = document.getElementById("chat-room-panel");
             chatPanel.style.display = "flex";
             
-            // 첫 시작 대사를 AI 캐릭터 명의로 바로 렌더링 (Cold-Start 렌더링 완성)
+            // 서브 헤더 방 이름 주입
+            document.getElementById("active-room-header-title").textContent = `🎬 ${storyTitle}`;
+
+            // 오프닝 첫 대사를 명세 지침대로 AI 이름 배지 우측 정렬 형태로 렌더링
             const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = `
                 <div class="msg-card">
-                    <span class="bold-txt">${storyTitle} (AI)</span><br>
-                    <span>${renderCustomMarkdown(startMsg || "*첫 메시지가 등록되지 않았습니다.*")}</span>
+                    <div class="sender-row">
+                        <div class="msg-sender-badge" onclick="openQuickPromptModal()">${storyTitle}</div>
+                    </div>
+                    <span>${renderCustomMarkdown(startMsg || "*시작 장면 지문이 등록되지 않았습니다.*")}</span>
                 </div>
             `;
+        }
+
+        // 에피소드 관리 및 체크박스 제어
+        function toggleEpisodeDeleteMode() {
+            const btn = document.querySelector(".sidebar-action-btn");
+            isEpisodeDeleteMode = !isEpisodeDeleteMode;
+
+            if (isEpisodeDeleteMode) {
+                btn.textContent = "완료";
+                btn.style.color = "var(--danger-color)";
+                document.querySelectorAll(".ep-delete-cb").forEach(cb => cb.style.display = "block");
+            } else {
+                const checked = Array.from(document.querySelectorAll(".ep-delete-cb:checked")).map(cb => cb.value);
+                if (checked.length > 0) {
+                    if (confirm(`선택한 ${checked.length}개의 세션을 삭제하시겠습니까?`)) {
+                        // 이후 대화 데이터베이스 구축 후 batch 삭제 연동 탑재
+                        alert("선택된 세션이 삭제되었습니다. (대화방 데이터 연동 시 삭제 로직 가동)");
+                    }
+                }
+                btn.textContent = "삭제";
+                btn.style.color = "var(--gray-text)";
+                document.querySelectorAll(".ep-delete-cb").forEach(cb => cb.style.display = "none");
+            }
+        }
+
+        // 에피소드 이름 변경 프롬프트
+        function renameEpisode(epId, currentName) {
+            const newName = prompt("에피소드 이름을 수정하세요:", currentName);
+            if (newName && newName.trim() && newName.trim() !== currentName) {
+                alert(`에피소드명이 [${newName.trim()}]으로 수정되었습니다. (세션 데이터베이스 연동 시 변경 사항 영구 보존)`);
+            }
         }
 
         // 오토 스크롤 제어
