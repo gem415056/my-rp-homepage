@@ -470,8 +470,8 @@
                     </select>
                 </div>
 
-                <!-- 설정 메뉴 영역 (간격 조율 완료) -->
-                <div class="sidebar-section-title" style="margin-top:24px; text-align:left;">설정 메뉴</div>
+                <!-- 설정 메뉴 영역 (모델 선택창과 간격 동일화 완료) -->
+                <div class="sidebar-section-title" style="margin-top:12px; text-align:left;">설정 메뉴</div>
                 <div class="menu-item" onclick="alert('프로필 리스트 준비중')">🎭 대화 프로필</div>
                 <div class="menu-item" onclick="alert('유저노트 준비중')">📓 유저노트</div>
                 <div class="menu-item" onclick="alert('로어 설정 준비중')">🔮 로어</div>
@@ -659,7 +659,7 @@
                     document.getElementById("login-screen").style.display = "none";
                     document.getElementById("app-screen").style.display = "flex";
                     loadStories();
-                    loadSavedApiCredentials(); // API 키 복원
+                    loadEpisodes(); // 로그인 성공 시 에피소드 사이드바 활성화
                 } else {
                     alert(`비인가된 접근입니다.\n등록용 해시: ${hash}`);
                 }
@@ -959,35 +959,117 @@
             return processed;
         }
 
-        // 스토리 플레이 진입 (지문 마진, 폰트 상향, AI 이름 배지 완전 삭제 완성)
+        // 전역 상태 관리용 에피소드 변수
+        let activeEpisodeId = "";
+        let unsubMessages = null;
+
+        // 사이드바에 내가 개설한 에피소드(세션 방) 리스트 실시간 로딩
+        function loadEpisodes() {
+            if (!userHash) return;
+            db.collection("system_verification").doc(userHash).collection("episodes").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+                const list = document.getElementById("episode-list");
+                list.innerHTML = "";
+                if (snapshot.empty) {
+                    list.innerHTML = `<div class="episode-item" style="font-size:11px; color:var(--gray-text);">저장된 에피소드가 없습니다.</div>`;
+                    return;
+                }
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const row = document.createElement("div");
+                    row.className = "episode-row";
+                    row.innerHTML = `
+                        <input type="checkbox" class="ep-delete-cb" value="${doc.id}" style="display:none; width:14px; height:14px; cursor:pointer;">
+                        <div class="episode-item" onclick="if(!isEpisodeDeleteMode) enterEpisode('${doc.id}', '${data.storyId}', '${data.title}')">🎬 ${data.title}</div>
+                        <button class="ep-edit-btn" onclick="renameEpisode('${doc.id}', '${data.title}')">✏️</button>
+                    `;
+                    list.appendChild(row);
+                });
+            });
+        }
+
+        // 플레이 버튼 터치 시 실제 DB 세션 개설 및 시작 장면 실시간 인젝션 작동
         function playStory(storyId, storyTitle, encodedStartMsg, encodedStartRef) {
+            if (!userHash) return;
             const startMsg = decodeURIComponent(encodedStartMsg);
             const startRef = decodeURIComponent(encodedStartRef);
 
-            currentStoryId = storyId; // 활성 룸 바인딩
+            if (!confirm(`[${storyTitle}] 스토리를 기반으로 새로운 세션 방을 개설하여 플레이를 시작하시겠습니까?`)) return;
+
+            // 1. 에피소드방 신규 생성
+            db.collection("system_verification").doc(userHash).collection("episodes").add({
+                storyId: storyId,
+                title: storyTitle, // 최초 방 제목은 스토리 제목을 따르며, 추후 사이드바 리네임 시 개별 격리 처리됩니다.
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                totalCost: 0
+            }).then((docRef) => {
+                const epId = docRef.id;
+                // 2. 시작 장면(첫 지문)을 첫 번째 AI 메시지로 DB에 삽입 (시작참고사항은 전송 패킷에만 가동)
+                db.collection("system_verification").doc(userHash).collection("episodes").doc(epId).collection("messages").add({
+                    role: "model",
+                    content: startMsg,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    sessionStorage.setItem("active_story_id", storyId);
+                    sessionStorage.setItem("active_start_ref", startRef);
+                    enterEpisode(epId, storyId, storyTitle);
+                });
+            }).catch(err => alert("세션 개설 실패: " + err.message));
+        }
+
+        // 기존에 개설된 에피소드방 진입 및 실시간 온스냅샷 대화 동기화
+        function enterEpisode(episodeId, storyId, displayTitle) {
+            activeEpisodeId = episodeId;
+            currentStoryId = storyId;
             sessionStorage.setItem("active_story_id", storyId);
-            sessionStorage.setItem("active_start_ref", startRef);
+            sessionStorage.setItem("active_episode_id", episodeId);
 
             document.querySelectorAll(".panel-container").forEach(el => el.style.display = "none");
             const chatPanel = document.getElementById("chat-room-panel");
             chatPanel.style.display = "flex";
             
-            // 서브 헤더 방 이름 주입 (왼쪽 정렬 완료)
-            document.getElementById("active-room-header-title").textContent = `🎬 ${storyTitle}`;
+            // 요구사항 반영: 서브 헤더 방 이름은 변경되지 않은 스토리 고유 제목을 출력합니다.
+            db.collection("system_verification").doc(userHash).collection("stories").doc(storyId).get().then(doc => {
+                if (doc.exists) {
+                    document.getElementById("active-room-header-title").textContent = `🎬 ${doc.data().title}`;
+                    sessionStorage.setItem("active_start_ref", doc.data().startReference || "");
+                }
+            });
 
-            // 첫 대사 AI 배지 없이 본문만 깔끔하게 렌더링
+            // 대화창 실시간 동기화
+            if (unsubMessages) unsubMessages();
             const chatBox = document.getElementById("chat-box");
-            chatBox.innerHTML = `
-                <div class="msg-card">
-                    <span>${renderCustomMarkdown(startMsg || "*시작 장면 지문이 등록되지 않았습니다.*")}</span>
-                </div>
-            `;
-            
-            // 스토리 진입 시 히스토리 상으로도 밀어 넣어 뒤로가기 대응
+            chatBox.innerHTML = `<span style="font-size:12px;color:var(--gray-text);">대화 내역을 불러오는 중...</span>`;
+
+            unsubMessages = db.collection("system_verification").doc(userHash).collection("episodes").doc(episodeId).collection("messages").orderBy("createdAt", "asc").onSnapshot((snapshot) => {
+                chatBox.innerHTML = "";
+                snapshot.forEach((doc) => {
+                    const msg = doc.data();
+                    const card = document.createElement("div");
+                    card.className = "msg-card";
+                    
+                    // 더블 클릭 시 즉각 수정용 에디터 활성화 적용
+                    card.ondblclick = () => openMessageEditor(doc.id, msg.content, msg.role);
+
+                    // AI와 유저 이름표 완전 삭제 심플 분리 렌더링
+                    card.innerHTML = `<span>${renderCustomMarkdown(msg.content)}</span>`;
+                    chatBox.appendChild(card);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            // 실시간 소모비용 로딩
+            db.collection("system_verification").doc(userHash).collection("episodes").doc(episodeId).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.querySelector(".header-left span:first-of-type").textContent = `Total: $${(data.totalCost || 0).toFixed(4)}`;
+                    document.querySelector(".header-left span:last-of-type").textContent = `Recent: $${(data.recentCost || 0).toFixed(4)}`;
+                }
+            });
+
             history.pushState({view: "chat-room-panel"}, "");
         }
 
-        // 에피소드 관리 및 체크박스 제어
+        // 에피소드방 체크박스 다중 일괄 삭제
         function toggleEpisodeDeleteMode() {
             const btn = document.querySelector(".sidebar-action-btn");
             isEpisodeDeleteMode = !isEpisodeDeleteMode;
@@ -999,8 +1081,16 @@
             } else {
                 const checked = Array.from(document.querySelectorAll(".ep-delete-cb:checked")).map(cb => cb.value);
                 if (checked.length > 0) {
-                    if (confirm(`선택한 ${checked.length}개의 세션을 삭제하시겠습니까?`)) {
-                        alert("선택된 세션이 삭제되었습니다.");
+                    if (confirm(`선택한 ${checked.length}개의 세션을 영구 폐기하시겠습니까?`)) {
+                        const batch = db.batch();
+                        checked.forEach(id => {
+                            const ref = db.collection("system_verification").doc(userHash).collection("episodes").doc(id);
+                            batch.delete(ref);
+                        });
+                        batch.commit().then(() => {
+                            alert("선택된 에피소드가 폐기되었습니다.");
+                            showPanel("story-panel");
+                        }).catch(err => alert("삭제 실패: " + err.message));
                     }
                 }
                 btn.textContent = "삭제";
@@ -1009,11 +1099,15 @@
             }
         }
 
-        // 에피소드 이름 변경 프롬프트
+        // 에피소드 이름 변경 프롬프트 (오직 사이드바 목록 내 이름만 변경)
         function renameEpisode(epId, currentName) {
             const newName = prompt("에피소드 이름을 수정하세요:", currentName);
             if (newName && newName.trim() && newName.trim() !== currentName) {
-                alert(`에피소드명이 [${newName.trim()}]으로 수정되었습니다.`);
+                db.collection("system_verification").doc(userHash).collection("episodes").doc(epId).update({
+                    title: newName.trim()
+                }).then(() => {
+                    alert("에피소드 이름이 수정되었습니다.");
+                }).catch(err => alert("이름 변경 실패: " + err.message));
             }
         }
 
@@ -1031,7 +1125,164 @@
             }
         }
 
-        // 답변 생성 상태 전송 버튼 UI 업데이트 테스트 핸들러
+        // 전송 버튼 물리 작동 핸들러 및 구글 Gemini API 통신 패킷 송수신 구현
+        document.getElementById("send-btn").onclick = function() {
+            if (isGenerating) {
+                // 답변 생성 중 터치 시 스트림 중단 기능
+                if (window.activeController) {
+                    window.activeController.abort();
+                    setButtonState(false);
+                    alert("답변 생성을 중단하였습니다.");
+                }
+                return;
+            }
+            sendUserMessage();
+        };
+
+        // 한국어 1글자 = 대략 1.1 토큰으로 보수적 예측 연산하는 안전 필터
+        function estimateTokenCount(text) {
+            let tokens = 0;
+            for (let i = 0; i < text.length; i++) {
+                const code = text.charCodeAt(i);
+                if (code >= 0xac00 && code <= 0xd7a3) tokens += 1.1; // 한글
+                else if (code <= 127) tokens += 0.25; // 아스키(영어, 기호)
+                else tokens += 0.8;
+            }
+            return Math.ceil(tokens);
+        }
+
+        // 구글 제미나이 API 전송 패킷 조립 및 실시간 비용 분석 처리
+        async function sendUserMessage() {
+            const inputArea = document.getElementById("chat-input");
+            const text = inputArea.value.trim();
+            if (!text || !userHash || !activeEpisodeId) return;
+
+            const apiKey = localStorage.getItem("gemini_api_key");
+            const selectedModel = localStorage.getItem("gemini_active_model") || "gemini-1.5-flash";
+
+            if (!apiKey) {
+                alert("우측 서랍 메뉴 [ 플레이 제어 ] 에서 Google Gemini API Key를 먼저 입력한 뒤 전송해 주십시오.");
+                toggleRightDrawer();
+                return;
+            }
+
+            setButtonState(true);
+            inputArea.value = ""; // 입력란 즉시 비우기
+            inputArea.style.height = "52px"; // 높이 초기화
+
+            try {
+                // 1. 유저 메시지 데이터베이스 저장
+                await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).collection("messages").add({
+                    role: "user",
+                    content: text,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 2. 스토리 고유 프롬프트 수급
+                const storyDoc = await db.collection("system_verification").doc(userHash).collection("stories").doc(currentStoryId).get();
+                if (!storyDoc.exists) throw new Error("스토리의 프롬프트를 찾을 수 없습니다.");
+                const prompt = storyDoc.data().prompt || "";
+
+                // 3. 기존 대화 히스토리 수급
+                const msgSnapshot = await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).collection("messages").orderBy("createdAt", "asc").get();
+                const rawMessages = [];
+                msgSnapshot.forEach(doc => rawMessages.push(doc.data()));
+
+                // 4. 시작참고사항 (Cold-Start) 대조 연산
+                const startRef = sessionStorage.getItem("active_start_ref") || "";
+                let contents = [];
+
+                rawMessages.forEach((msg, idx) => {
+                    let contentText = msg.content;
+                    // 첫 번째 유저 메시지 전송 시 시작참고사항을 선두에 인젝션 결합 처리
+                    if (idx === 1 && msg.role === "user" && startRef) {
+                        contentText = `[시작 참고 사항]\n${startRef}\n\n[내 응답]\n${contentText}`;
+                    }
+                    contents.push({
+                        role: msg.role === "user" ? "user" : "model",
+                        parts: [{ text: contentText }]
+                    });
+                });
+
+                // 5. 10,000 토큰 한도 초과 감지 시 가장 오래된 대화록부터 순차 슬라이싱 (Pruning)
+                let totalEstimatedTokens = estimateTokenCount(prompt);
+                contents.forEach(c => totalEstimatedTokens += estimateTokenCount(c.parts[0].text));
+
+                while (totalEstimatedTokens > 10000 && contents.length > 2) {
+                    // 최초 AI 오프닝 대사는 롤플레잉 흐름 보존을 위해 무조건 살려둡니다.
+                    const removed = contents.splice(1, 1)[0];
+                    totalEstimatedTokens -= estimateTokenCount(removed.parts[0].text);
+                }
+
+                // 6. 구글 API 비동기 전송 개시
+                window.activeController = new AbortController();
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: window.activeController.signal,
+                    body: JSON.stringify({
+                        systemInstruction: { parts: [{ text: prompt }] },
+                        contents: contents
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || "API 전송 거부");
+                }
+
+                const resJson = await response.json();
+                const responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+                if (responseText) {
+                    // 7. AI 응답 데이터베이스 영구 기록
+                    await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).collection("messages").add({
+                        role: "model",
+                        content: responseText,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // 8. 모델 설정 요율에 입각한 정밀 비용(USD) 계산 ( pricing.js 이식 )
+                    const MODEL_RATES = {
+                        "gemini-3.5-flash": { input: 0.0015 / 1000, output: 0.009 / 1000 }, // 지목 요율 이식
+                        "gemini-3.1-pro-preview": { input: 0.002 / 1000, output: 0.012 / 1000 },
+                        "gemini-3.1-flash-lite-preview": { input: 0.000075 / 1000, output: 0.0003 / 1000 },
+                        "gemini-2.5-pro": { input: 0.00125 / 1000, output: 0.005 / 1000 },
+                        "gemini-2.5-flash": { input: 0.0003 / 1000, output: 0.0015 / 1000 },
+                        "gemini-1.5-pro": { input: 0.00125 / 1000, output: 0.005 / 1000 },
+                        "gemini-1.5-flash": { input: 0.000075 / 1000, output: 0.0003 / 1000 }
+                    };
+
+                    const rate = MODEL_RATES[selectedModel] || MODEL_RATES["gemini-1.5-flash"];
+                    const inTokens = resJson.usageMetadata?.promptTokenCount || estimateTokenCount(prompt) + totalEstimatedTokens;
+                    const outTokens = resJson.usageMetadata?.candidatesTokenCount || estimateTokenCount(responseText);
+
+                    const recentCost = (inTokens * rate.input) + (outTokens * rate.output);
+
+                    // 누적 비용 연산 업데이트
+                    const epDoc = await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).get();
+                    const currentTotal = epDoc.data().totalCost || 0;
+                    const nextTotal = currentTotal + recentCost;
+
+                    await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).update({
+                        recentCost: recentCost,
+                        totalCost: nextTotal
+                    });
+                }
+
+            } catch (err) {
+                if (err.name !== "AbortError") {
+                    alert("대화 오류: " + err.message);
+                }
+            } finally {
+                setButtonState(false);
+                window.activeController = null;
+            }
+        }
+
+        // 답변 생성 상태 전송 버튼 UI 업데이트 제어기
         function setButtonState(generating) {
             isGenerating = generating;
             const btn = document.getElementById("send-btn");
@@ -1085,7 +1336,13 @@
             saveApiCredentials();
         }
 
-        // API 및 설정값 브라우저 로컬 저장 장치
+        // 사용자가 드롭다운에서 선택한 모델명을 브라우저에 실시간 저장 및 유지하는 함수
+        function saveSelectedModel() {
+            const model = document.getElementById("model-select").value;
+            localStorage.setItem("gemini_active_model", model);
+        }
+
+        // API 및 파이어베이스 설정값 브라우저 저장 장치 (모델 저장 기능 연동 완료)
         function saveApiCredentials() {
             const key = document.getElementById("api-key-input").value.trim();
             const script = document.getElementById("firebase-script-input").value.trim();
@@ -1098,9 +1355,11 @@
             const key = localStorage.getItem("gemini_api_key") || "";
             const script = localStorage.getItem("firebase_config_script") || "";
             const activeTab = localStorage.getItem("active_api_tab") || "gemini"; // 기존 탭 기억 호출
+            const savedModel = localStorage.getItem("gemini_active_model") || "gemini-1.5-flash"; // 저장된 모델 복원
             
             document.getElementById("api-key-input").value = key;
             document.getElementById("firebase-script-input").value = script;
+            document.getElementById("model-select").value = savedModel;
             switchApiTab(activeTab);
         }
 
@@ -1112,19 +1371,15 @@
                 document.getElementById("login-screen").style.display = "none";
                 document.getElementById("app-screen").style.display = "flex";
                 loadSavedApiCredentials(); // 복원
+                loadStories();
+                loadEpisodes(); // 자동 로그인 시 에피소드 실시간 수급 바인딩
                 
                 const activeRoomId = sessionStorage.getItem("active_story_id"); // 브라우저 탭 세션 메모리로 격리
-                if (activeRoomId) {
-                    db.collection("system_verification").doc(userHash).collection("stories").doc(activeRoomId).get().then((doc) => {
-                        if (doc.exists) {
-                            const data = doc.data();
-                            playStory(activeRoomId, data.title, encodeURIComponent(data.startMessage || ''), encodeURIComponent(data.startReference || ''));
-                        } else {
-                            loadStories();
-                        }
-                    }).catch(() => loadStories());
+                const activeEpId = sessionStorage.getItem("active_episode_id");
+                if (activeRoomId && activeEpId) {
+                    enterEpisode(activeEpId, activeRoomId, "");
                 } else {
-                    loadStories();
+                    showPanel("story-panel");
                 }
             }
         });
