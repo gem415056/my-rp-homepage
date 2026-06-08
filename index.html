@@ -10,7 +10,7 @@
             --bg-color: #FFFFFF;
             --text-color: #2C3E50;
             --border-color: #E6E6E6;
-            --border-dark-gray: #B0B0B0; /* 진해진 수직 점선 및 실선 색상 */
+            --border-dark-gray: #B0B0B0; /* 진해진 가이드 실선 및 툴바 수직 점선 */
             --accent-color: #BCD0D8;
             --card-bg: #F9F9F9;
             --pastel-purple-bg: #F3EBF7;
@@ -18,8 +18,8 @@
             --active-purple: #D5C2DE;
             --gray-text: #888888;
             --danger-color: #FF4433;
-            --textarea-bg: #FAFAFA; /* 훨씬 연해진 5줄 고정 회색 입력창 */
-            --send-btn-normal: #D5C2DE; /* 연보라 전송버튼 */
+            --textarea-bg: #FAFAFA; /* 훨씬 연한 입력창 배경색 */
+            --send-btn-normal: #D5C2DE; /* 원형 전송버튼 연보라색 */
             --send-btn-active: #888888;
         }
 
@@ -72,12 +72,12 @@
             padding: 0 8px;
         }
 
-        /* 2. 메인 플레이 화면 */
+        /* 2. 메인 앱 화면 */
         #app-screen {
             display: none; width: 100%; height: 100%; flex-direction: column; position: relative;
         }
 
-        /* 1단: 최상단 PASTEL chat 전용 헤더 */
+        /* 1단: 최상단 PASTEL chat 고정 전용 헤더 (구분 실선 삭제) */
         .app-header {
             height: 48px; border-bottom: none;
             display: flex; align-items: center; justify-content: space-between;
@@ -86,7 +86,7 @@
         }
 
         .app-logo {
-            font-size: 20px; font-weight: 800; letter-spacing: 0.5px;
+            font-size: 24px; font-weight: 800; letter-spacing: 0.5px;
             position: absolute; left: 50%; transform: translateX(-50%);
         }
 
@@ -105,6 +105,17 @@
         }
 
         .sidebar.open { left: 0; }
+
+        /* 우측 제어 서랍 메뉴 */
+        .right-drawer {
+            position: absolute; top: 0; right: -280px; width: 280px; height: 100%;
+            background-color: var(--bg-color); border-left: 1px solid var(--border-color);
+            z-index: 30; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; box-shadow: -2px 0 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        .right-drawer.open { right: 0; }
 
         .sidebar-header {
             height: 48px; border-bottom: 1px solid var(--border-color);
@@ -157,7 +168,11 @@
             display: flex; flex-direction: column; gap: 16px;
         }
 
-        /* 에디터 상단 헤더 스티키(Sticky) 고정화 완성 */
+        /* 에디터 상단 헤더 스티키(Sticky) 고정 및 불투명 레이어 가려짐 정밀 이식 */
+        #story-editor-panel {
+            overflow-y: auto; display: none; flex-direction: column; position: relative;
+        }
+
         #story-editor-panel .panel-header {
             position: sticky; top: 0; background-color: var(--bg-color); z-index: 20;
             padding: 10px 0; border-bottom: 1px solid var(--border-color);
@@ -227,29 +242,26 @@
             display: none; flex-direction: column; width: 100%; height: 100%; overflow: hidden;
         }
 
-        /* 2단: 스토리 제목 서브 헤더 (알약형 테두리 적용, 높이 48px 상향) */
+        /* 2단: 스토리 제목 서브 헤더 (왼쪽 정렬, 크기 상향 20px, 테두리 및 구분 가로선 완전 제거) */
         .chat-sub-header {
             height: 48px; border-bottom: none;
             display: flex; align-items: center; justify-content: space-between;
-            font-size: 17px; font-weight: bold; color: var(--text-color);
+            font-size: 20px; font-weight: bold; color: var(--text-color);
             background-color: var(--bg-color);
             padding: 0 36px; box-sizing: border-box;
         }
 
         .chat-sub-title-text {
             cursor: pointer; text-align: left; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            display: inline-block; border: 1px solid var(--active-purple); border-radius: 12px;
-            padding: 4px 14px; font-weight: bold; background-color: var(--bg-color); color: var(--text-color);
-            max-width: fit-content;
         }
-        .chat-sub-title-text:hover { filter: brightness(0.95); }
+        .chat-sub-title-text:hover { text-decoration: underline; }
 
-        /* 3단: 비용 및 라디오존데 헤더 (수직 간격 70% 축소 38px 보정, 가로구분 실선 추가) */
+        /* 3단: 비용 및 라디오존데 헤더 (유일하게 구분 회색 실선을 대화창 본문과의 경계에 삽입) */
         .chat-info-header {
-            height: 32px; border-bottom: 1px solid var(--border-color);
+            height: 38px; border-bottom: 1px solid var(--border-color);
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 36px; box-sizing: border-box; font-size: 13px; color: var(--gray-text);
-            background-color: var(--bg-color); margin-top: -6px;
+            background-color: var(--bg-color); margin-top: -12px; /* 간격 70% 압축 완성 */
         }
 
         /* 대화창 내부 넓은 마진 레이아웃 (36px 패딩) */
@@ -262,6 +274,8 @@
             padding: 18px 0; border-bottom: 1px solid var(--border-color);
             line-height: 1.6; font-size: 15px; word-break: break-all; text-align: left;
         }
+
+        /* AI 이름표 배지 (요구사항대로 완전 삭제) */
 
         .msg-card .narration { color: var(--gray-text); }
         .msg-card .bold-txt { font-weight: bold; }
@@ -362,7 +376,7 @@
             <div style="width: 24px;"></div>
         </div>
 
-        <!-- 왼쪽 사이드바 영역 -->
+        <!-- 왼쪽 사이드바 메뉴 -->
         <div class="sidebar" id="app-sidebar">
             <div class="sidebar-header">
                 <span style="font-weight: bold; font-size: 14px;">메뉴</span>
@@ -385,6 +399,34 @@
         </div>
         <div class="overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
+        <!-- 우측 제어 서랍 메뉴 (오른쪽 가려짐 레이아웃 탑재) -->
+        <div class="sidebar" id="app-right-drawer" style="left:auto; right:-280px; border-right:none; border-left:1px solid var(--border-color); box-shadow: -2px 0 12px rgba(0,0,0,0.1);">
+            <div class="sidebar-header">
+                <span style="font-weight: bold; font-size: 14px;">플레이 제어</span>
+                <button class="menu-trigger" onclick="toggleRightDrawer()" style="margin-right:0;">✕</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-section-title">API 설정</div>
+                <div class="boxed-card" style="padding:10px; gap:8px;">
+                    <div class="input-group">
+                        <label>Google Gemini API Key</label>
+                        <input type="password" id="api-key-input" placeholder="AIzaSy..." style="font-size:12px; padding:6px;" onchange="saveApiCredentials()">
+                    </div>
+                    <div class="input-group">
+                        <label>Firebase Config Script</label>
+                        <textarea id="firebase-script-input" placeholder="const firebaseConfig = { ... };" style="font-size:10px; height:80px; padding:6px;" onchange="saveApiCredentials()"></textarea>
+                    </div>
+                </div>
+                <div class="sidebar-section-title">설정 메뉴</div>
+                <div class="menu-item" onclick="alert('모델 설정 준비중')">🤖 모델 선택</div>
+                <div class="menu-item" onclick="alert('프로필 리스트 준비중')">🎭 대화 프로필</div>
+                <div class="menu-item" onclick="alert('유저노트 준비중')">📓 유저노트</div>
+                <div class="menu-item" onclick="alert('로어 설정 준비중')">🔮 로어</div>
+                <div class="menu-item" onclick="alert('교정기 준비중')">🫧 응답 교정</div>
+            </div>
+        </div>
+        <div class="overlay" id="right-drawer-overlay" onclick="toggleRightDrawer()"></div>
+
         <!-- 메인 동적 컨테이너 -->
         <div class="main-container" id="main-container">
             
@@ -400,7 +442,7 @@
                 <div id="story-list-container" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
 
-            <!-- B. 스토리 생성/편집 독립형 에디터 화면 (저장 단추 배경색 #D5C2DE 반영) -->
+            <!-- B. 스토리 생성/편집 독립형 에디터 화면 (넓고 큰 입력창 및 카드 배치 완성) -->
             <div class="panel-container" id="story-editor-panel" style="display:none; padding-bottom: 40px;">
                 <div class="panel-header">
                     <button class="btn-gray-outline" onclick="showPanel('story-panel')">취소</button>
@@ -459,10 +501,10 @@
 
             <!-- E. 실제 채팅 대화방 패널 -->
             <div class="chat-room-container" id="chat-room-panel">
-                <!-- 2단: 스토리 제목 서브 헤더 (왼쪽 정렬, 크기 상향, 우측 메뉴 단축 SVG 버튼 장착) -->
+                <!-- 2단: 스토리 제목 서브 헤더 (왼쪽 정렬 완료, 우측 서랍 메뉴 단축 SVG 버튼 장착) -->
                 <div class="chat-sub-header">
                     <div class="chat-sub-title-text" id="active-room-header-title" onclick="openQuickPromptModal()"></div>
-                    <button class="menu-trigger" onclick="openQuickPromptModal()" style="margin-right: 0;">
+                    <button class="menu-trigger" onclick="toggleRightDrawer()" style="margin-right: 0;">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="var(--text-color)" viewBox="0 0 24 24" width="24px" height="24px"><path d="M11 11h2v2h-2zm-2.5 0h-2v2h2zm7 0h2v2h-2z"></path><path fill-rule="evenodd" d="M1.99 12c0 5.52 4.49 10.01 10.01 10.01S22.01 17.52 22.01 12 17.52 1.99 12 1.99 1.99 6.48 1.99 12m1.6 0c0-4.64 3.77-8.41 8.41-8.41s8.41 3.77 8.41 8.41-3.77 8.41-8.41 8.41S3.59 16.64 3.59 12" clip-rule="evenodd"></path></svg>
                     </button>
                 </div>
@@ -564,6 +606,7 @@
                     document.getElementById("login-screen").style.display = "none";
                     document.getElementById("app-screen").style.display = "flex";
                     loadStories();
+                    loadSavedApiCredentials(); // API 키 복원
                 } else {
                     alert(`비인가된 접근입니다.\n등록용 해시: ${hash}`);
                 }
@@ -577,6 +620,14 @@
             const sidebar = document.getElementById("app-sidebar");
             const overlay = document.getElementById("sidebar-overlay");
             sidebar.classList.toggle("open");
+            overlay.classList.toggle("active");
+        }
+
+        // 우측 제어 서랍 메뉴 열고 닫기 제어
+        function toggleRightDrawer() {
+            const drawer = document.getElementById("app-right-drawer");
+            const overlay = document.getElementById("right-drawer-overlay");
+            drawer.classList.toggle("open");
             overlay.classList.toggle("active");
         }
 
@@ -810,17 +861,18 @@
             }).catch(err => alert("적용 실패: " + err.message));
         }
 
-        // 지문 정밀 렌더링 파서 (엔터 줄바꿈 정상 복구 및 코드블록 줄바꿈 완전 연동 완료)
+        // 지문 정밀 렌더링 파서 (지문 회색화, 백틱 가독성, 인용구 색상 보존, 코드블록 연보라 사각형 이식)
         function renderCustomMarkdown(text) {
             let processed = text;
-            processed = processed.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            processed = processed.replace(/&/g, "&amp;").replace(/</g, "&lt;");
             const preBlocks = [];
             processed = processed.replace(/```([\s\S]*?)```/g, function(match, code) {
                 const idx = preBlocks.length;
-                preBlocks.push('<pre><code>' + code.trim() + '</code></pre>');
+                let cleanCode = code.trim().replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                preBlocks.push('<pre><code>' + cleanCode + '</code></pre>');
                 return `@@@PRE_BLOCK_${idx}@@@`;
             });
-            processed = processed.replace(/`([^`]+)`/g, '<span class="code-inline">$1</span>');
+            processed = processed.replace(/`([^`\n]+)`/g, '<span class="code-inline">$1</span>');
             processed = processed.replace(/\*\*([^*]+)\*\*/g, '<span class="bold-txt">$1</span>');
             processed = processed.replace(/\*([^*]+)\*/g, '<span class="narration">*$1*</span>');
             processed = processed.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
@@ -849,7 +901,7 @@
             // 서브 헤더 방 이름 주입 (왼쪽 정렬 완료)
             document.getElementById("active-room-header-title").textContent = `🎬 ${storyTitle}`;
 
-            // 오프닝 첫 대사 AI 배지 없이 본문만 깔끔하게 렌더링
+            // 첫 대사 AI 배지 없이 본문만 깔끔하게 렌더링
             const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = `
                 <div class="msg-card">
@@ -915,11 +967,28 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" width="22" height="22"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
                 `;
             } else {
-                btn.style.backgroundColor = "var(--send-btn-normal)";
+                btn.style.backgroundColor = "var(--active-purple)";
                 btn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" width="22" height="22"><path d="M18.77 11.13 8.5 5.2a1 1 0 0 0-1.5 .87v11.86a1 1 0 0 0 1.5 .87l10.27-5.93a1 1 0 0 0 0-1.73z"></path></svg>
                 `;
             }
+        }
+
+        // API 및 파이어베이스 설정값 브라우저 저장 장치
+        function saveApiCredentials() {
+            const key = document.getElementById("api-key-input").value.trim();
+            const script = document.getElementById("firebase-script-input").value.trim();
+            
+            localStorage.setItem("gemini_api_key", key);
+            localStorage.setItem("firebase_config_script", script);
+        }
+
+        function loadSavedApiCredentials() {
+            const key = localStorage.getItem("gemini_api_key") || "";
+            const script = localStorage.getItem("firebase_config_script") || "";
+            
+            document.getElementById("api-key-input").value = key;
+            document.getElementById("firebase-script-input").value = script;
         }
 
         // 새로고침 시 로그인 상태 세션 자동 복원 장치 (룸 세션 완벽 보존)
@@ -929,10 +998,10 @@
                 userHash = savedHash;
                 document.getElementById("login-screen").style.display = "none";
                 document.getElementById("app-screen").style.display = "flex";
+                loadSavedApiCredentials(); // 복원
                 
                 const activeRoomId = localStorage.getItem("active_story_id");
                 if (activeRoomId) {
-                    // 세션 대방 로딩
                     db.collection("system_verification").doc(userHash).collection("stories").doc(activeRoomId).get().then((doc) => {
                         if (doc.exists) {
                             const data = doc.data();
