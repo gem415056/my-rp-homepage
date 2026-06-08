@@ -18,7 +18,7 @@
             --active-purple: #D5C2DE;
             --gray-text: #888888;
             --danger-color: #FF4433;
-            --textarea-bg: #F5F5F5; /* 연한 회색 입력창 배경색 */
+            --textarea-bg: #FAFAFA; /* 백색에 가까운 아주 연한 회색으로 교정 */
         }
 
         body[data-theme="dark"] {
@@ -221,7 +221,7 @@
 
         /* 2단: 스토리 제목 서브 헤더 (왼쪽 정렬, 폰트 상향, 구분 가로선 제거) */
         .chat-sub-header {
-            height: 38px; border-bottom: none;
+            height: 48px; border-bottom: none;
             display: flex; align-items: center; justify-content: space-between;
             font-size: 17px; font-weight: bold; color: var(--text-color);
             background-color: var(--bg-color);
@@ -230,14 +230,17 @@
 
         .chat-sub-title-text {
             cursor: pointer; text-align: left; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            display: inline-block; border: 1px solid var(--active-purple); border-radius: 12px;
+            padding: 4px 14px; font-weight: bold; background-color: var(--bg-color); color: var(--text-color);
+            max-width: fit-content;
         }
-        .chat-sub-title-text:hover { text-decoration: underline; }
+        .chat-sub-title-text:hover { filter: brightness(0.95); }
 
         /* 3단: 비용 및 라디오존데 헤더 (유일하게 구분 회색 실선을 대화창 본문과의 경계에 삽입) */
         .chat-info-header {
-            height: 32px; border-bottom: 1px solid var(--border-color);
+            height: 38px; border-bottom: 1px solid var(--border-color);
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 36px; box-sizing: border-box; font-size: 11px; color: var(--gray-text);
+            padding: 0 36px; box-sizing: border-box; font-size: 13px; color: var(--gray-text);
             background-color: var(--bg-color);
         }
 
@@ -252,15 +255,6 @@
             line-height: 1.6; font-size: 15px; word-break: break-all; text-align: left;
         }
 
-        /* AI 이름 배지 (왼쪽 정렬 완료, 클릭 팝업 완전 제거) */
-        .sender-row { display: flex; width: 100%; margin-bottom: 8px; justify-content: flex-start; }
-        .msg-sender-badge {
-            display: inline-block; border: 1px solid var(--active-purple);
-            border-radius: 12px; padding: 3px 12px; font-size: 11px; font-weight: bold;
-            background-color: var(--bg-color); color: var(--text-color);
-            cursor: default;
-        }
-
         .msg-card .narration { color: var(--gray-text); }
         .msg-card .bold-txt { font-weight: bold; }
         .msg-card .code-inline {
@@ -273,14 +267,16 @@
             border-radius: 8px; padding: 12px; overflow-x: auto; margin: 8px 0;
             box-sizing: border-box;
         }
-        .msg-card pre code { font-family: monospace; font-weight: bold; color: var(--text-color); }
+        .msg-card pre code { font-family: monospace; color: var(--text-color); }
         body[data-theme="dark"] .msg-card pre { background-color: #382B3A; }
 
-        /* 인용구 스타일 (세로 실선 점선, 색상 연화 배제) */
+        /* 인용구 스타일 (세로 실선 점선 연속 연동화, 색상 연화 배제) */
         .msg-card .quote-block {
             border-left: 3px dotted var(--text-color); padding-left: 12px;
-            margin: 8px 0 8px 8px; color: var(--text-color); display: block;
+            margin: 0 0 0 8px; color: var(--text-color); display: block;
         }
+        .msg-card .quote-block:first-of-type { margin-top: 8px; }
+        .msg-card .quote-block:last-of-type { margin-bottom: 8px; }
 
         /* 하단 입력 영역 (와이드 마진 적용, 대화창과 구분 가로선 완전 삭제) */
         .footer-control {
@@ -293,14 +289,15 @@
             display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-text);
         }
 
-        /* 단축기 원형 배경 단추 (입력 도우미 모듈 동그라미 양식 이식) */
+        /* 단축기 입체 원형 테두리 단추 (배경 제거, 연회색 테두리 링 동그라미화 완료) */
         .tool-btn {
-            background-color: var(--border-color); border: none; color: var(--text-color); cursor: pointer;
+            background-color: transparent; border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer;
             width: 24px; height: 24px; border-radius: 50%; font-size: 11px; transition: 0.2s;
             display: inline-flex; align-items: center; justify-content: center; padding: 0;
+            box-sizing: border-box;
         }
 
-        .tool-btn:hover { background-color: var(--border-dark-gray); }
+        .tool-btn:hover { background-color: var(--card-bg); border-color: var(--border-dark-gray); }
         .vertical-divider { width: 1px; height: 14px; border-left: 1px dashed var(--border-dark-gray); margin: 0 2px; }
 
         /* 유동형 업스크롤 입력바 및 원형 전송 버튼 빌트인 탑재 (relative 기반) */
@@ -555,6 +552,7 @@
             db.collection("system_verification").doc(hash).get().then((doc) => {
                 if (doc.exists || hash === "f2d81a26022851cbba1943c75cf4c0ff9599599599599599599599599599599a") {
                     userHash = hash;
+                    localStorage.setItem("verified_user_hash", hash); // 자동 로그인을 위한 영구 토큰 저장
                     document.getElementById("login-screen").style.display = "none";
                     document.getElementById("app-screen").style.display = "flex";
                     loadStories();
@@ -791,18 +789,37 @@
             }).catch(err => alert("적용 실패: " + err.message));
         }
 
-        // 지문 정밀 렌더링 파서 (지문 회색화, 백틱 가독성, 인용구 색상 보존, 코드블록 연보라 사각형 이식)
+        // 지문 정밀 렌더링 파서 (엔터 줄바꿈 정상 복구 및 코드블록 줄바꿈 완전 연동 완료)
         function renderCustomMarkdown(text) {
             let processed = text;
-            processed = processed.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            // 1단계: HTML 문자 보호 조치
+            processed = processed.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            // 2단계: 코드 블록 선제 격리
+            const preBlocks = [];
+            processed = processed.replace(/```([\s\S]*?)```/g, function(match, code) {
+                const idx = preBlocks.length;
+                preBlocks.push('<pre><code>' + code.trim() + '</code></pre>');
+                return `@@@PRE_BLOCK_${idx}@@@`;
+            });
+            // 3단계: 인라인 백틱 처리
             processed = processed.replace(/`([^`]+)`/g, '<span class="code-inline">$1</span>');
+            // 4단계: 볼드 및 이탤릭 지문 연동
             processed = processed.replace(/\*\*([^*]+)\*\*/g, '<span class="bold-txt">$1</span>');
             processed = processed.replace(/\*([^*]+)\*/g, '<span class="narration">*$1*</span>');
-            processed = processed.replace(/^>\s*(.+)$/gm, '<span class="quote-block">$1</span>');
+            // 5단계: 대망의 엔터키(줄바꿈) HTML 복구
+            processed = processed.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
+            // 6단계: 인용구 블록 렌더링
+            processed = processed.replace(/^&gt;\s*(.+)$/gm, '<span class="quote-block">$1</span>');
+            // 7단계: 인용구 및 연속 줄바꿈 시 이중 줄바꿈 공백 이격 해제 정돈
+            processed = processed.replace(/<\/span><br><span class="quote-block">/g, '</span><span class="quote-block">');
+            // 8단계: 코드 블록 원본 복구
+            processed = processed.replace(/@@@PRE_BLOCK_(\d+)@@@/g, function(match, idx) {
+                return preBlocks[parseInt(idx)];
+            });
             return processed;
         }
 
-        // 스토리 플레이 진입 (지문 마진, 폰트 상향, AI 이름표 왼쪽 정렬 배지)
+        // 스토리 플레이 진입 (지문 마진, 폰트 상향, AI 이름 배지 완전 삭제 완성)
         function playStory(storyId, storyTitle, encodedStartMsg, encodedStartRef) {
             const startMsg = decodeURIComponent(encodedStartMsg);
             const startRef = decodeURIComponent(encodedStartRef);
@@ -815,16 +832,13 @@
             const chatPanel = document.getElementById("chat-room-panel");
             chatPanel.style.display = "flex";
             
-            // 서브 헤더 방 이름 주입 (왼쪽 정렬 완료)
+            // 서브 헤더 방 이름 주입
             document.getElementById("active-room-header-title").textContent = `🎬 ${storyTitle}`;
 
-            // 첫 대사 AI 이름 배지 왼쪽 정렬로 렌더링 (클릭 팝업 제거)
+            // 첫 대사 AI 이름 배지 없이 대사 지문만 깨끗하게 즉시 출력
             const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = `
                 <div class="msg-card">
-                    <div class="sender-row">
-                        <div class="msg-sender-badge">${storyTitle}</div>
-                    </div>
                     <span>${renderCustomMarkdown(startMsg || "*시작 장면 지문이 등록되지 않았습니다.*")}</span>
                 </div>
             `;
@@ -905,6 +919,17 @@
                 `;
             }
         }
+
+        // 새로고침 시 로그인 상태 세션 자동 복원 장치
+        window.addEventListener("load", () => {
+            const savedHash = localStorage.getItem("verified_user_hash");
+            if (savedHash) {
+                userHash = savedHash;
+                document.getElementById("login-screen").style.display = "none";
+                document.getElementById("app-screen").style.display = "flex";
+                loadStories();
+            }
+        });
     </script>
 </body>
 </html>
