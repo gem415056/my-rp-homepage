@@ -10,7 +10,7 @@
             --bg-color: #FFFFFF;
             --text-color: #2C3E50;
             --border-color: #E6E6E6;
-            --border-dark-gray: #A0A0A0; /* 진한 회색 수직 실선 및 툴바 점선 */
+            --border-dark-gray: #B0B0B0; /* 진한 회색 수직 실선 및 툴바 점선 */
             --accent-color: #BCD0D8;
             --card-bg: #F9F9F9;
             --pastel-purple-bg: #F3EBF7;
@@ -18,7 +18,7 @@
             --active-purple: #D5C2DE;
             --gray-text: #888888;
             --danger-color: #FF4433;
-            --textarea-bg: #FAFAFA; /* 훨씬 연한 회색 입력창 배경색 */
+            --textarea-bg: #FAFAFA; /* 연한 회색 입력창 배경색 */
             --send-btn-normal: #D5C2DE; /* 연보라 전송버튼 */
             --send-btn-active: #888888;
         }
@@ -77,7 +77,7 @@
             display: none; width: 100%; height: 100%; flex-direction: column; position: relative;
         }
 
-        /* 1단: 최상단 PASTEL chat 전용 헤더 (모든 하부 가로구분선 삭제) */
+        /* 1단: 최상단 PASTEL chat 고정 전용 헤더 */
         .app-header {
             height: 48px; border-bottom: none;
             display: flex; align-items: center; justify-content: space-between;
@@ -97,7 +97,7 @@
             padding: 0; margin-right: 12px; display: flex; align-items: center;
         }
 
-        /* 사이드바 메뉴 */
+        /* 왼쪽 사이드바 메뉴 */
         .sidebar {
             position: absolute; top: 0; left: -280px; width: 280px; height: 100%;
             background-color: var(--bg-color); border-right: 1px solid var(--border-color);
@@ -107,21 +107,27 @@
 
         .sidebar.open { left: 0; }
 
-        /* 우측 제어 서랍 메뉴 (클래스 분리 구조로 오류 해결) */
+        /* 우측 제어 서랍 메뉴 (3단 헤더 아래 134px 격리 배치 완벽 구현) */
         .right-drawer {
-            position: absolute; top: 0; right: -280px; width: 280px; height: 100%;
+            position: absolute; top: 118px; right: -280px; width: 280px; height: calc(100% - 118px);
             background-color: var(--bg-color); border-left: 1px solid var(--border-color);
-            z-index: 30; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 15; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; box-shadow: -2px 0 12px rgba(0,0,0,0.1);
             box-sizing: border-box;
         }
 
         .right-drawer.open { right: 0; }
 
+        /* 서랍 메뉴 헤더 축소 */
+        .right-drawer-header {
+            height: 38px; border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; padding: 0 16px; justify-content: space-between;
+            background-color: var(--bg-color);
+        }
+
         .sidebar-header {
             height: 48px; border-bottom: 1px solid var(--border-color);
             display: flex; align-items: center; padding: 0 16px; justify-content: space-between;
-            background-color: var(--bg-color);
         }
 
         .sidebar-content {
@@ -152,12 +158,16 @@
         .episode-item:hover { background-color: var(--card-bg); }
         .ep-edit-btn { background: none; border: none; color: var(--gray-text); cursor: pointer; padding: 4px; font-size: 11px; }
 
-        /* 암전 오버레이 */
+        /* 암전 오버레이 (118px 아래에만 어둡게 내리기) */
         .overlay {
             position: absolute; inset: 0; background-color: rgba(0,0,0,0.4);
             z-index: 20; display: none;
         }
         .overlay.active { display: block; }
+        
+        #right-drawer-overlay {
+            top: 118px; height: calc(100% - 118px);
+        }
 
         /* 메인 컨텐츠 영역 */
         .main-container {
@@ -170,7 +180,7 @@
             display: flex; flex-direction: column; gap: 16px;
         }
 
-        /* 에디터 상단 헤더 스티키(Sticky) 고정 및 불투명 레이어 가려짐 완벽 이식 */
+        /* 에디터 상단 헤더 스티키(Sticky) 고정 */
         #story-editor-panel {
             overflow-y: auto; display: none; flex-direction: column; position: relative;
         }
@@ -260,7 +270,7 @@
 
         /* 3단: 비용 및 라디오존데 헤더 (수직 간격 70% 압축 보정, 가로구분 실선 추가) */
         .chat-info-header {
-            height: 38px; border-bottom: 1px solid var(--border-color);
+            height: 32px; border-bottom: 1px solid var(--border-color);
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 36px; box-sizing: border-box; font-size: 13px; color: var(--gray-text);
             background-color: var(--bg-color); margin-top: -12px;
@@ -353,6 +363,17 @@
             box-sizing: border-box; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
             display: flex; flex-direction: column; gap: 14px;
         }
+
+        /* 서랍 내부 탭 스타일 교정 */
+        .right-drawer .tab-bar .tab {
+            border: 1px solid var(--border-color); background: transparent;
+            color: var(--gray-text); border-radius: 4px; padding: 4px 8px;
+            font-size: 11px; font-weight: normal;
+        }
+        .right-drawer .tab-bar .tab.active {
+            border-color: var(--active-purple); color: var(--text-color);
+            background-color: var(--pastel-purple-bg); font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -399,10 +420,10 @@
         </div>
         <div class="overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-        <!-- 우측 제어 서랍 메뉴 (클릭 접이식 다이내믹 탭 제어판 이식 완료) -->
+        <!-- 우측 제어 서랍 메뉴 (3단 헤더 아래 134px 격리 배치 완벽 구현) -->
         <div class="right-drawer" id="app-right-drawer">
-            <div class="sidebar-header">
-                <span style="font-weight: bold; font-size: 14px;">플레이 제어</span>
+            <div class="right-drawer-header">
+                <span style="font-weight: bold; font-size: 13px;">플레이 제어</span>
                 <button class="menu-trigger" onclick="toggleRightDrawer()" style="margin-right:0;">✕</button>
             </div>
             <div class="sidebar-content">
@@ -412,12 +433,11 @@
                     <span id="api-toggle-arrow">▶</span>
                 </div>
                 <!-- 접이식 설정 카드 박스 -->
-                <div class="boxed-card" id="api-settings-card" style="padding:12px; gap:8px; display:none; transition: 0.2s;">
-                    <!-- 로어 인젝터 방식의 상단 전환 탭바 -->
-                    <div class="tab-bar" style="margin-bottom:8px; justify-content:flex-start; gap:12px;">
+                <div class="boxed-card" id="api-settings-card" style="padding:12px; gap:8px; display:none;">
+                    <div class="tab-bar" style="margin-bottom:8px; justify-content:flex-start; gap:12px; border-bottom:none;">
                         <div class="tabs" style="gap:8px;">
-                            <button class="tab active" id="api-tab-gemini" onclick="switchApiTab('gemini')" style="font-size:11px; padding:4px 8px;">Gemini</button>
-                            <button class="tab" id="api-tab-firebase" onclick="switchApiTab('firebase')" style="font-size:11px; padding:4px 8px;">Firebase</button>
+                            <button class="tab active" id="api-tab-gemini" onclick="switchApiTab('gemini')">Gemini</button>
+                            <button class="tab" id="api-tab-firebase" onclick="switchApiTab('firebase')">Firebase</button>
                         </div>
                     </div>
                     <!-- 탭 1: 제미나이 키 -->
@@ -435,8 +455,25 @@
                         </div>
                     </div>
                 </div>
-                <div class="sidebar-section-title">설정 메뉴</div>
-                <div class="menu-item" onclick="alert('모델 설정 준비중')">🤖 모델 선택</div>
+
+                <!-- 모델 선택 독립 섹션 (최신 제품군 및 체급 순으로 완벽 정비) -->
+                <div class="sidebar-section-title" style="margin-top:12px; text-align:left;">모델 선택</div>
+                <div class="boxed-card" style="padding:10px; gap:8px;">
+                    <div class="input-group">
+                        <select id="model-select" onchange="saveSelectedModel()" style="font-size:12px; padding:6px; width:100%; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); color:var(--text-color); outline:none; height:32px;">
+                            <option value="gemini-3.5-flash">Gemini 3.5 Flash (최신형 가성비)</option>
+                            <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (최신형 고성능)</option>
+                            <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash-Lite</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 설정 메뉴 영역 (간격 조율 완료) -->
+                <div class="sidebar-section-title" style="margin-top:24px; text-align:left;">설정 메뉴</div>
                 <div class="menu-item" onclick="alert('프로필 리스트 준비중')">🎭 대화 프로필</div>
                 <div class="menu-item" onclick="alert('유저노트 준비중')">📓 유저노트</div>
                 <div class="menu-item" onclick="alert('로어 설정 준비중')">🔮 로어</div>
@@ -481,7 +518,7 @@
                     </div>
                 </div>
 
-                <!-- 섹션 2: 스토리 설정 카드 (세로 길이 400px 상향 가독성 극대화) -->
+                <!-- 섹션 2: 스토리 설정 카드 -->
                 <div class="boxed-card">
                     <div class="card-subheader">스토리 설정</div>
                     <div class="input-group">
@@ -739,7 +776,7 @@
             }).catch(err => alert("수정 데이터 로드 실패: " + err.message));
         }
 
-        // 파이어베이스스토리 저장 및 업데이트 수렴
+        // 파이어베이스스토리 저장 및 업데이트 수렴 (프롬프트 저장 데이터 대조 정밀화)
         function saveStory() {
             if (!isSaveAllowed || !userHash) return;
 
