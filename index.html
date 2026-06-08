@@ -107,11 +107,11 @@
 
         .sidebar.open { left: 0; }
 
-        /* 우측 제어 서랍 메뉴 (3단 헤더 아래 134px 격리 배치 완벽 구현) */
+        /* 우측 제어 서랍 메뉴 (3단 헤더 아래 134px 격리 배치 및 터치 감수 z-index 교정 완료) */
         .right-drawer {
             position: absolute; top: 118px; right: -280px; width: 280px; height: calc(100% - 118px);
             background-color: var(--bg-color); border-left: 1px solid var(--border-color);
-            z-index: 15; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 30; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column; box-shadow: -2px 0 12px rgba(0,0,0,0.1);
             box-sizing: border-box;
         }
@@ -456,20 +456,18 @@
                     </div>
                 </div>
 
-                <!-- 모델 선택 독립 섹션 (최신 제품군 및 체급 순으로 완벽 정비) -->
+                <!-- 모델 선택 독립 섹션 (회색 가두리 제거로 심플화 완료) -->
                 <div class="sidebar-section-title" style="margin-top:12px; text-align:left;">모델 선택</div>
-                <div class="boxed-card" style="padding:10px; gap:8px;">
-                    <div class="input-group">
-                        <select id="model-select" onchange="saveSelectedModel()" style="font-size:12px; padding:6px; width:100%; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); color:var(--text-color); outline:none; height:32px;">
-                            <option value="gemini-3.5-flash">Gemini 3.5 Flash (최신형 가성비)</option>
-                            <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (최신형 고성능)</option>
-                            <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash-Lite</option>
-                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                            <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash</option>
-                        </select>
-                    </div>
+                <div class="input-group" style="padding: 0 4px;">
+                    <select id="model-select" onchange="saveSelectedModel()" style="font-size:12px; padding:6px; width:100%; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-color); color:var(--text-color); outline:none; height:32px;">
+                        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+                        <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash-Lite</option>
+                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash</option>
+                    </select>
                 </div>
 
                 <!-- 설정 메뉴 영역 (간격 조율 완료) -->
@@ -695,7 +693,7 @@
             }
             if (panelId !== "chat-room-panel") {
                 // 대화방을 나가는 경우 세션에서 스토리 ID를 완전히 파괴하여 새로고침 시 홈화면이 유지되도록 합니다.
-                localStorage.removeItem("active_story_id");
+                sessionStorage.removeItem("active_story_id");
             }
             if (!isPopState) {
                 // 뒤로가기 액션 취할 시 아카이브 첫 페이지(스토리 패널)로 돌아가기 위해 히스토리 유도
@@ -969,7 +967,6 @@
             currentStoryId = storyId; // 활성 룸 바인딩
             sessionStorage.setItem("active_story_id", storyId);
             sessionStorage.setItem("active_start_ref", startRef);
-            localStorage.setItem("active_story_id", storyId); // 새로고침 시 유지를 위해 영구 보존
 
             document.querySelectorAll(".panel-container").forEach(el => el.style.display = "none");
             const chatPanel = document.getElementById("chat-room-panel");
@@ -1107,7 +1104,7 @@
             switchApiTab(activeTab);
         }
 
-        // 새로고침 시 로그인 상태 세션 자동 복원 장치 (룸 세션 완벽 보존)
+        // 새로고침 시 로그인 상태 세션 자동 복원 장치 (룸 세션 완벽 보존, 첫 진입 시 홈화면 고정 완료)
         window.addEventListener("load", () => {
             const savedHash = localStorage.getItem("verified_user_hash");
             if (savedHash) {
@@ -1116,7 +1113,7 @@
                 document.getElementById("app-screen").style.display = "flex";
                 loadSavedApiCredentials(); // 복원
                 
-                const activeRoomId = localStorage.getItem("active_story_id");
+                const activeRoomId = sessionStorage.getItem("active_story_id"); // 브라우저 탭 세션 메모리로 격리
                 if (activeRoomId) {
                     db.collection("system_verification").doc(userHash).collection("stories").doc(activeRoomId).get().then((doc) => {
                         if (doc.exists) {
