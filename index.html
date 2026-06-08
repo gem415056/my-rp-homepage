@@ -364,12 +364,12 @@
             display: flex; flex-direction: column; gap: 14px;
         }
 
-        /* 단축어 카드 전역 폼 가독성 보정 (마진 확대 및 15px 폰트 상향 완료) */
-        .sc-editor-group { display: flex; flex-direction: column; gap: 14px; width: 100%; text-align: left; }
+        /* 단축어 카드 전역 폼 가독성 보정 (패딩 축소, 15px 대형 폰트 및 입체 여백 완료) */
+        .sc-editor-group { display: flex; flex-direction: column; gap: 10px; width: 100%; text-align: left; }
         .sc-input {
             width: 100%; border: 1px solid var(--border-color); border-radius: 8px;
             background-color: var(--bg-color); color: var(--text-color); font-size: 15px !important;
-            padding: 10px; box-sizing: border-box; outline: none; font-family: inherit;
+            padding: 8px 10px; box-sizing: border-box; outline: none; font-family: inherit;
         }
         .sc-textarea {
             width: 100%; height: 100px; border: 1px solid var(--border-color); border-radius: 8px;
@@ -378,7 +378,7 @@
         }
         .sc-save-btn {
             background: transparent; border: none; color: var(--text-color); cursor: pointer;
-            display: flex; align-items: center; justify-content: center; padding: 6px; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; padding: 4px; transition: 0.2s;
         }
         .sc-save-btn:hover { color: var(--active-purple); }
     </style>
@@ -628,14 +628,12 @@
 
     </div>
 
-    <!-- 단축어 간편 선택 소형 팝업 (요구사항 반영) -->
-    <div class="popup-overlay" id="shortcut-select-modal" onclick="if(event.target===this) closeShortcutSelectModal()">
-        <div class="popup-modal" style="max-width: 320px; padding: 16px;">
-            <div class="card-subheader" style="color:var(--text-color); font-size:13px; margin-bottom:12px;">단축어 선택</div>
-            <div id="shortcut-select-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;">
-                <!-- 로드 시점에 동적으로 !단축어 명칭 배치가 구성됩니다 -->
-            </div>
-            <button class="btn-gray-outline" style="margin-top:12px; width:100%;" onclick="closeShortcutSelectModal()">닫기</button>
+    <!-- 단축어 간편 선택 전용 모달 팝업 (가로막힘 및 상단 헤더 소실 오류 완전 해결형) -->
+    <div class="global-popup-overlay" id="shortcut-select-modal" onclick="if(event.target===this) closeShortcutSelectModal()">
+        <div class="global-popup-modal" style="max-width: 320px; padding: 16px; gap:8px;">
+            <div class="card-subheader" style="color:var(--text-color); font-size:13px; margin-bottom:8px;">단축어 선택</div>
+            <div id="shortcut-select-list" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; box-sizing:border-box;"></div>
+            <button class="btn-gray-outline" style="margin-top:4px; width:100%;" onclick="closeShortcutSelectModal()">닫기</button>
         </div>
     </div>
 
@@ -844,43 +842,60 @@
         let activeShortcutsList = [];
         let isShortcutDeleteMode = false;
 
-        // 추가하기 클릭 시 즉시 빈 회색 카드 추가 (디스크 저장 버튼 장착 인라인 에디터 완료)
+        // 단축어 추가용 에디터 폼 가동 및 디스크 저장 단추 1열 매립 (무경고 자동 갱신 완료)
         function openShortcutCreator() {
             if (!userHash) return;
             const container = document.getElementById("shortcut-list-container");
-            
-            // 기존 비어있다는 문구 소독
-            if (container.innerHTML.includes("등록된 단축어가 없습니다")) {
-                container.innerHTML = "";
-            }
+            if (container.innerHTML.includes("등록된 단축어가 없습니다")) container.innerHTML = "";
 
             const wrapper = document.createElement("div");
             wrapper.className = "story-row-wrap";
             const tempId = "new_sc_" + Date.now();
             
-            // 디스크 모양 저장 버튼 및 글자수 세킹창 인라인 폼 설계 (요구사항 반영)
+            // 제목 우측 끝자리에 디스크 보존 단추 장착 및 안내 문구 세척 (요구사항 완벽 반영)
             wrapper.innerHTML = `
-                <div class="story-card" id="${tempId}" style="cursor:default; width:100%;">
+                <div class="story-card" id="${tempId}" style="cursor:default; width:100%; padding:14px;">
                     <div class="sc-editor-group">
-                        <div class="input-group">
-                            <label>제목</label>
-                            <input type="text" class="sc-input" id="${tempId}-title" placeholder="단축어 명칭을 적으세요 (예: 알랑)">
-                        </div>
-                        <div class="input-group">
-                            <label>내용 (최대 400자)</label>
-                            <textarea class="sc-textarea" id="${tempId}-content" placeholder="단축어 호출 시 변환될 대사를 적으세요" oninput="limitShortcutTextCount('${tempId}', 400)"></textarea>
-                            <div class="char-counter" id="${tempId}-counter" style="margin-top:2px;">0 / 400</div>
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; width:100%; margin-top:2px;">
-                            <button class="sc-save-btn" id="${tempId}-save-btn" onclick="saveNewShortcut('${tempId}')" title="데이터베이스에 저장">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:12px;">
+                            <input type="text" class="sc-input" id="${tempId}-title" placeholder="단축어를 입력하세요" style="flex:1;">
+                            <button class="sc-save-btn" id="${tempId}-save-btn" onclick="saveNewShortcut('${tempId}')" title="저장">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
                             </button>
+                        </div>
+                        <div class="input-group" style="width:100%;">
+                            <textarea class="sc-textarea" id="${tempId}-content" placeholder="단축어 호출시 불러올 문구를 입력하세요" style="height:100px;" oninput="limitShortcutTextCount('${tempId}', 400)"></textarea>
+                            <div class="char-counter" id="${tempId}-counter" style="margin-top:2px;">0 / 400</div>
                         </div>
                     </div>
                 </div>
             `;
             container.appendChild(wrapper);
             wrapper.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 완료된 카드를 누르면 즉시 그 자리에서 에디터로 전환하는 인라인 편집 기능 (요구사항 반영)
+        function editShortcutInline(scId, currentTitle, currentContent) {
+            const cardWrap = document.querySelector(`.shortcut-delete-cb[value="${scId}"]`)?.parentElement;
+            if (!cardWrap) return;
+
+            const tempId = "edit_sc_" + scId;
+            cardWrap.innerHTML = `
+                <input type="checkbox" class="shortcut-delete-cb" value="${scId}" style="display:none; width:18px; height:18px; cursor:pointer;">
+                <div class="story-card" id="${tempId}" style="cursor:default; width:100%; padding:14px; border-color:var(--accent-color);">
+                    <div class="sc-editor-group">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:12px;">
+                            <input type="text" class="sc-input" id="${tempId}-title" value="${currentTitle}" placeholder="단축어를 입력하세요" style="flex:1;">
+                            <button class="sc-save-btn" id="${tempId}-save-btn" onclick="saveEditShortcut('${scId}', '${tempId}')" title="저장">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                            </button>
+                        </div>
+                        <div class="input-group" style="width:100%;">
+                            <textarea class="sc-textarea" id="${tempId}-content" placeholder="단축어 호출시 불러올 문구를 입력하세요" style="height:100px;" oninput="limitShortcutTextCount('${tempId}', 400)">${currentContent}</textarea>
+                            <div class="char-counter" id="${tempId}-counter" style="margin-top:2px;">${currentContent.length} / 400</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // 단축어 폼 전용 실시간 글자수 체킹 및 세이프티 가드
@@ -902,33 +917,43 @@
             }
         }
 
-        // 인라인 작성 완료된 단축어 저장
+        // 신규 단축어 저장 (무경고 자동 동기화 갱신)
         function saveNewShortcut(tempId) {
             const titleInput = document.getElementById(`${tempId}-title`);
             const contentArea = document.getElementById(`${tempId}-content`);
-            const title = titleInput.value.trim().replace(/^!/, ""); // 혹시 앞자리에 !를 직접 적었더라도 내부 소독 처리
+            const title = titleInput.value.trim().replace(/^!/, "");
             const content = contentArea.value.trim();
 
-            if (!title) {
-                alert("제목은 필수 입력사항입니다.");
-                return;
-            }
-            if (!content || content.length > 400) {
-                alert("대체 내용을 적절한 글자 수 범위 내에서 채워주십시오.");
-                return;
-            }
+            if (!title || !content || content.length > 400) return;
 
             db.collection("system_verification").doc(userHash).collection("shortcuts").add({
                 shortcut: title,
                 content: content,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
-                alert("단축어가 정상 보존되었습니다.");
-                loadShortcuts();
+                loadShortcuts(); // 팝업 없는 실시간 고속 수렴
             }).catch(err => alert("저장 실패: " + err.message));
         }
 
-        // 단축어 체크박스 다중 일괄 선택 삭제
+        // 기존 단축어 수정 저장 (무경고 자동 동기화 갱신)
+        function saveEditShortcut(scId, tempId) {
+            const titleInput = document.getElementById(`${tempId}-title`);
+            const contentArea = document.getElementById(`${tempId}-content`);
+            const title = titleInput.value.trim().replace(/^!/, "");
+            const content = contentArea.value.trim();
+
+            if (!title || !content || content.length > 400) return;
+
+            db.collection("system_verification").doc(userHash).collection("shortcuts").doc(scId).update({
+                shortcut: title,
+                content: content,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                loadShortcuts();
+            }).catch(err => alert("수정 실패: " + err.message));
+        }
+
+        // 단축어 체크박스 다중 일괄 선택 삭제 (선택삭제 완료 후 무소음 자동 수렴)
         function toggleShortcutDeleteMode() {
             const btn = document.getElementById("shortcut-delete-toggle-btn");
             isShortcutDeleteMode = !isShortcutDeleteMode;
@@ -948,7 +973,6 @@
                             batch.delete(ref);
                         });
                         batch.commit().then(() => {
-                            alert("단축어가 삭제되었습니다.");
                             loadShortcuts();
                         }).catch(err => alert("삭제 실패: " + err.message));
                     }
@@ -960,7 +984,7 @@
             }
         }
 
-        // 단축어 목록 불러오기 및 느낌표 표기화 연동
+        // 단축어 목록 실시간 동계 렌더링 (즉각 터치 수정 진입 기능 장착 완료)
         function loadShortcuts() {
             if (!userHash) return;
             const container = document.getElementById("shortcut-list-container");
@@ -979,10 +1003,10 @@
 
                     const wrapper = document.createElement("div");
                     wrapper.className = "story-row-wrap";
-                    // ![알랑] 대신 !알랑 형태로 타이틀을 렌더링하도록 치환 보정
+                    // 온클릭 시 인라인 에디터 폼으로 즉각 전환시키는 기능 연동
                     wrapper.innerHTML = `
                         <input type="checkbox" class="shortcut-delete-cb" value="${doc.id}" style="display:none; width:18px; height:18px; cursor:pointer;">
-                        <div class="story-card" style="cursor:default;">
+                        <div class="story-card" style="width:100%; padding:14px;" onclick="if(!isShortcutDeleteMode) editShortcutInline('${doc.id}', '${data.shortcut.replace(/'/g, "\\'")}', \`${data.content.replace(/`/g, "\\`").replace(/\$/g, "\\$")}\`)">
                             <div class="story-info">
                                 <span class="story-name">!${data.shortcut}</span>
                                 <span class="story-intro" style="word-break:break-all; white-space:pre-wrap;">${data.content}</span>
@@ -1309,13 +1333,13 @@
             }
         }
 
-        // 단축어 간편 선택 팝업창 제어부 및 즉각 대입 매커니즘
+        // 단축어 간편 선택 전역 모달 제어 및 즉시 텍스트 영역 주입 ( ! 버튼 팝업 누락 버그 완전 해결)
         function openShortcutSelectModal() {
             const list = document.getElementById("shortcut-select-list");
             list.innerHTML = "";
             
             if (activeShortcutsList.length === 0) {
-                list.innerHTML = `<span style="font-size:11px;color:var(--gray-text);">등록된 단축어가 없습니다. '단축어 설정' 패널에서 추가하세요.</span>`;
+                list.innerHTML = `<span style="font-size:11px;color:var(--gray-text); text-align:left;">등록된 단축어가 없습니다. '단축어 설정' 패널에서 추가하세요.</span>`;
                 document.getElementById("shortcut-select-modal").classList.add("active");
                 return;
             }
@@ -1323,12 +1347,11 @@
             activeShortcutsList.forEach(sc => {
                 const btn = document.createElement("button");
                 btn.className = "btn-gray-outline";
-                btn.style.cssText = "width:100%; text-align:left; padding:10px 14px; font-size:13px;";
+                btn.style.cssText = "width:100%; text-align:left; padding:10px 14px; font-size:13px; box-sizing:border-box;";
                 btn.textContent = `!${sc.shortcut}`;
                 
                 btn.onclick = () => {
                     const input = document.getElementById("chat-input");
-                    // 기존 입력값 끝부분에 공백과 함께 !단축어를 자연스럽게 삽입합니다.
                     const spacing = input.value.length > 0 && !input.value.endsWith(" ") ? " " : "";
                     input.value += `${spacing}!${sc.shortcut}`;
                     closeShortcutSelectModal();
