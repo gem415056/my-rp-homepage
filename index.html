@@ -652,27 +652,36 @@
             </div>
         </div>
 
-        <!-- 유저노트 설정 팝업 모달 (베이스/키워드노트 이중 설계 및 500자 제어 락 장착 완료) -->
+        <!-- 유저노트 설정 팝업 모달 (3in1 순정 격자카드 멀티형 구조 완벽 이식) -->
         <div class="global-popup-overlay" id="user-note-modal" onclick="if(event.target===this) closeUserNoteModal()">
-            <div class="global-popup-modal" style="max-width: 460px;">
-                <div class="card-subheader" style="color:var(--text-color); font-size:14px; margin-bottom:8px;">유저노트 (세션 개별 보존)</div>
-                <div class="input-group">
-                    <label>베이스 노트 (기본 주입 500자 제한)</label>
-                    <textarea id="note-base-input" style="height:110px;" placeholder="상시로 캐릭터에 전달할 배경 상황을 적으세요..." oninput="limitNoteTextCount('note-base-input', 500, 'note-base-counter')"></textarea>
-                    <div class="char-counter" id="note-base-counter">0 / 500</div>
+            <div class="global-popup-modal" style="max-width: 480px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column;">
+                <div class="card-subheader" style="color:var(--text-color); font-size:14px; margin-bottom:8px; flex-shrink:0;">유저노트</div>
+                
+                <!-- 스크롤 가능 본문 영역 -->
+                <div id="user-note-scroll-body" style="flex:1; overflow-y:auto; padding-right:4px; display:flex; flex-direction:column; gap:12px; box-sizing:border-box;">
+                    
+                    <!-- 1. 베이스 노트 고정 카드 -->
+                    <div class="boxed-card" id="note-card-base">
+                        <div class="card-subheader">베이스 노트</div>
+                        <div class="input-group">
+                            <label>내용</label>
+                            <textarea id="note-base-input" style="height:100px;" placeholder="전달할 내용을 입력하세요" oninput="limitNoteTextCount('note-base-input', 500, 'note-base-counter')"></textarea>
+                            <div class="char-counter" id="note-base-counter">0 / 500</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 동적 키워드 노트 카드 리스트 컨테이너 -->
+                    <div id="keyword-notes-list-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+                    
                 </div>
-                <div class="input-group">
-                    <label>키워드 노트 (조건부 대체 주입 500자 제한)</label>
-                    <textarea id="note-keyword-input" style="height:110px;" placeholder="특정 단어 감지 시 대체하여 전송될 상황을 적으세요..." oninput="limitNoteTextCount('note-keyword-input', 500, 'note-keyword-counter')"></textarea>
-                    <div class="char-counter" id="note-keyword-counter">0 / 500</div>
-                </div>
-                <div class="input-group">
-                    <label>감지 키워드 단어 (쉼표(,)로 구분 / 예: 화남,슬픔,전투)</label>
-                    <input type="text" id="note-trigger-input" placeholder="여기에 기입된 키워드가 대화에 감지되면 키워드노트가 가동됩니다">
-                </div>
-                <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
-                    <button class="btn-gray-outline" onclick="closeUserNoteModal()">취소</button>
-                    <button class="btn-gray-outline" id="note-save-btn" onclick="saveUserNote()" style="background-color:var(--active-purple); color:var(--text-color);">적용</button>
+
+                <!-- 푸터 툴 제어단 -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; border-top:1px solid var(--border-color); padding-top:10px; flex-shrink:0;">
+                    <button class="btn-gray-outline" onclick="addNewKeywordNoteCard()">+ 키워드 추가</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-gray-outline" onclick="closeUserNoteModal()">취소</button>
+                        <button class="btn-gray-outline" id="note-save-btn" onclick="saveUserNote()" style="background-color:var(--active-purple); color:var(--text-color);">적용</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1314,11 +1323,16 @@
                     chatBox.appendChild(card);
                 });
 
-                // 누적 비용 및 최근 비용 상단 헤더에 실시간 표기 반영 (원화 환율 실시간 정밀 연동 및 소수점 1자리 원화 표기화 완료)
-                const totalKrw = accumulatedTotalCost * usdToKrwRate;
-                const recentKrw = lastTurnCost * usdToKrwRate;
-                document.querySelector(".header-left span:first-of-type").textContent = `Total: $${accumulatedTotalCost.toFixed(4)} (₩${totalKrw.toFixed(1)})`;
-                document.querySelector(".header-left span:last-of-type").textContent = `Recent: $${lastTurnCost.toFixed(4)} (₩${recentKrw.toFixed(1)})`;
+                // 누적 비용 및 최근 비용 상단 헤더에 실시간 표기 반영 (오직 원화만 표기, 숫자만 볼드체 완벽 고정)
+                const totalKrw = Math.round(accumulatedTotalCost * usdToKrwRate);
+                const recentKrw = Math.round(lastTurnCost * usdToKrwRate);
+                
+                document.querySelector(".header-left").innerHTML = `
+                    <button class="menu-trigger" onclick="toggleSidebar()">☰</button>
+                    <span>총 <strong>${totalKrw}</strong>원</span>
+                    <span>|</span>
+                    <span>최근 <strong>${recentKrw}</strong>원</span>
+                `;
 
                 chatBox.scrollTop = chatBox.scrollHeight;
             });
@@ -1416,10 +1430,14 @@
             document.getElementById("shortcut-select-modal").classList.remove("active");
         }
 
-        // 유저노트 입력 실시간 세이프티 가드 및 500자 차단 락
+        // 단축어 전역 목록 보존용 상태값
+        let activeKeywordNotesList = [];
         let isNoteSaveAllowed = true;
+
+        // 유저노트 실시간 세이프티 가드 및 500자 제한 락
         function limitNoteTextCount(id, max, counterId) {
             const ta = document.getElementById(id);
+            if (!ta) return;
             const count = ta.value.length;
             const counter = document.getElementById(counterId);
             const saveBtn = document.getElementById("note-save-btn");
@@ -1438,7 +1456,96 @@
             }
         }
 
-        // 유저노트 열기 및 기존 데이터 실시간 수급 바인딩
+        // 새 키워드 노트 빈 카드 즉시 추가 가동
+        function addNewKeywordNoteCard() {
+            const tempId = "kn_" + Date.now();
+            activeKeywordNotesList.push({
+                id: tempId,
+                name: "",
+                triggers: "",
+                content: ""
+            });
+            renderKeywordNoteCards();
+            setTimeout(() => {
+                const el = document.getElementById(`note-card-${tempId}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+        }
+
+        // 키워드 카드 정렬 순서 이동 (▲/▼)
+        function moveKeywordNote(idx, direction) {
+            if (direction === "up" && idx > 0) {
+                const temp = activeKeywordNotesList[idx - 1];
+                activeKeywordNotesList[idx - 1] = activeKeywordNotesList[idx];
+                activeKeywordNotesList[idx] = temp;
+            } else if (direction === "down" && idx < activeKeywordNotesList.length - 1) {
+                const temp = activeKeywordNotesList[idx + 1];
+                activeKeywordNotesList[idx + 1] = activeKeywordNotesList[idx];
+                activeKeywordNotesList[idx] = temp;
+            }
+            renderKeywordNoteCards();
+        }
+
+        // 특정 키워드 카드 제거
+        function deleteKeywordNote(idx) {
+            activeKeywordNotesList.splice(idx, 1);
+            renderKeywordNoteCards();
+        }
+
+        // 데이터 수집용 폼 동기화
+        function collectKeywordNoteData() {
+            activeKeywordNotesList.forEach(kn => {
+                const nameInp = document.getElementById(`kn-name-${kn.id}`);
+                const trigInp = document.getElementById(`kn-trig-${kn.id}`);
+                const contTa = document.getElementById(`kn-content-${kn.id}`);
+                if (nameInp) kn.name = nameInp.value.trim();
+                if (trigInp) kn.triggers = trigInp.value.trim();
+                if (contTa) kn.content = contTa.value.trim();
+            });
+        }
+
+        // 수집된 키워드노트 목록을 격자형 카드로 렌더링 (순정 3in1의 ▲/▼/✘ 기능 정밀 구현)
+        function renderKeywordNoteCards() {
+            collectKeywordNoteData(); // 먼저 현재 기입된 정보 보호 수집
+            const list = document.getElementById("keyword-notes-list-container");
+            list.innerHTML = "";
+
+            activeKeywordNotesList.forEach((kn, idx) => {
+                const card = document.createElement("div");
+                card.className = "boxed-card";
+                card.id = `note-card-${kn.id}`;
+                
+                card.innerHTML = `
+                    <div class="card-subheader" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>키워드 노트</span>
+                        <div style="display:flex; gap:6px;">
+                            <button class="tool-btn" onclick="moveKeywordNote(${idx}, 'up')" style="width:20px; height:20px; font-size:10px;">▲</button>
+                            <button class="tool-btn" onclick="moveKeywordNote(${idx}, 'down')" style="width:20px; height:20px; font-size:10px;">▼</button>
+                            <button class="tool-btn" onclick="deleteKeywordNote(${idx})" style="width:20px; height:20px; font-size:10px; border-color:var(--danger-color); color:var(--danger-color);">✘</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <div class="input-group" style="flex:1;">
+                            <label>이름</label>
+                            <input type="text" id="kn-name-${kn.id}" value="${kn.name}" placeholder="예: 화남">
+                        </div>
+                        <div class="input-group" style="flex:1;">
+                            <label>키워드</label>
+                            <input type="text" id="kn-trig-${kn.id}" value="${kn.triggers}" placeholder="예: 화남,슬픔,전투">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>내용</label>
+                        <textarea id="kn-content-${kn.id}" style="height:100px;" placeholder="대체 전달할 내용을 입력하세요" oninput="limitNoteTextCount('kn-content-${kn.id}', 500, 'kn-counter-${kn.id}')">${kn.content}</textarea>
+                        <div class="char-counter" id="kn-counter-${kn.id}">${kn.content.length} / 500</div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            evaluateAndHighlightActiveNote(); // 현재 감지된 노트 배지 실시간 점등
+        }
+
+        // 유저노트 팝업 오픈 및 실시간 DB 수급 바인딩
         function openUserNoteModal() {
             if (!userHash || !activeEpisodeId) {
                 alert("먼저 스토리 대화방(플레이)에 진입해 주십시오.");
@@ -1450,11 +1557,12 @@
                 if (doc.exists) {
                     const data = doc.data();
                     document.getElementById("note-base-input").value = data.baseNote || "";
-                    document.getElementById("note-keyword-input").value = data.keywordNote || "";
-                    document.getElementById("note-trigger-input").value = data.keywordTriggers || "";
-
+                    
+                    // 기존 저장된 키워드노트 배열 수급
+                    activeKeywordNotesList = data.keywordNotes || [];
+                    
                     limitNoteTextCount('note-base-input', 500, 'note-base-counter');
-                    limitNoteTextCount('note-keyword-input', 500, 'note-keyword-counter');
+                    renderKeywordNoteCards();
 
                     document.getElementById("user-note-modal").classList.add("active");
                 }
@@ -1465,18 +1573,65 @@
             document.getElementById("user-note-modal").classList.remove("active");
         }
 
-        // 유저노트 정보 세션방 문서에 보존 (무소음 백그라운드 저장 적용)
+        // [정밀 구현]: 현재 대화 내용 전체를 즉석 대조하여 어떤 노트가 활성화되어 작동 중인지 팝업 내에서 보라 배지 색상으로 자동 실시간 점등
+        function evaluateAndHighlightActiveNote() {
+            const baseVal = document.getElementById("note-base-input").value.trim();
+            const chatBox = document.getElementById("chat-box");
+            const poolText = chatBox ? chatBox.textContent : "";
+
+            // 3in1 순정형 스위칭 검수기 작동
+            let activeId = "base";
+            for (const kn of activeKeywordNotesList) {
+                if (!kn.triggers || !kn.content) continue;
+                const triggersArr = kn.triggers.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+                const hasHit = triggersArr.some(trig => {
+                    if (trig.includes("&&")) {
+                        const parts = trig.split("&&").map(p => p.trim()).filter(Boolean);
+                        return parts.length && parts.every(p => poolText.toLowerCase().includes(p));
+                    }
+                    return poolText.toLowerCase().includes(trig);
+                });
+                if (hasHit) {
+                    activeId = kn.id;
+                    break;
+                }
+            }
+
+            // 모든 카드 배경색 초기화
+            document.getElementById("note-card-base").style.borderColor = "var(--border-color)";
+            document.getElementById("note-card-base").style.backgroundColor = "var(--card-bg)";
+            activeKeywordNotesList.forEach(kn => {
+                const el = document.getElementById(`note-card-${kn.id}`);
+                if (el) {
+                    el.style.borderColor = "var(--border-color)";
+                    el.style.backgroundColor = "var(--card-bg)";
+                }
+            });
+
+            // 현재 감지되어 적용 중인 타겟 노트에만 보라색 배지 테두리 및 연보라 배경 하이라이트 실시간 부여
+            if (activeId === "base") {
+                const el = document.getElementById("note-card-base");
+                el.style.borderColor = "var(--active-purple)";
+                el.style.backgroundColor = "var(--pastel-purple-bg)";
+            } else {
+                const el = document.getElementById(`note-card-${activeId}`);
+                if (el) {
+                    el.style.borderColor = "var(--active-purple)";
+                    el.style.backgroundColor = "var(--pastel-purple-bg)";
+                }
+            }
+        }
+
+        // 유저노트 적용 클릭 시 영구 저장 (무경고 고속 저장 연동)
         function saveUserNote() {
             if (!isNoteSaveAllowed || !userHash || !activeEpisodeId) return;
+            collectKeywordNoteData(); // 최신 기입 정보 수집
 
             const base = document.getElementById("note-base-input").value.trim();
-            const keyword = document.getElementById("note-keyword-input").value.trim();
-            const triggers = document.getElementById("note-trigger-input").value.trim();
 
             db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).update({
                 baseNote: base,
-                keywordNote: keyword,
-                keywordTriggers: triggers
+                keywordNotes: activeKeywordNotesList // 키워드노트 배열 통째로 세션방에 저장 완료
             }).then(() => {
                 closeUserNoteModal();
             }).catch(err => alert("유저노트 저장 실패: " + err.message));
@@ -1556,30 +1711,40 @@
                 if (!storyDoc.exists) throw new Error("스토리의 프롬프트를 찾을 수 없습니다.");
                 let prompt = storyDoc.data().prompt || "";
 
-                // [요구사항 반영] 유저노트 스왑 매커니즘 작동 개시
+                // [3in1 지능형 순정 스왑 매커니즘 완벽 연동 가동]
                 const epDoc = await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).get();
                 if (epDoc.exists) {
                     const epData = epDoc.data();
                     const baseNote = epData.baseNote || "";
-                    const keywordNote = epData.keywordNote || "";
-                    const rawTriggers = epData.keywordTriggers || "";
+                    const kList = epData.keywordNotes || [];
 
-                    let activeNote = baseNote; // 기본값은 베이스노트
+                    let activeNote = baseNote; // 기본값 베이스노트
 
-                    if (keywordNote && rawTriggers) {
-                        // 대화 맥락(유저 질문 및 직전 대화록) 수합
-                        const scanPool = (text + " " + chatBox.textContent).toLowerCase();
-                        const triggersArr = rawTriggers.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+                    // 대화 맥락 수합 (유저의 최신 질문 메시지 및 직전 대화 상자 텍스트)
+                    const scanPool = (text + " " + chatBox.textContent).toLowerCase();
+
+                    // 등록된 키워드 리스트를 작성 순서(중요도)대로 탐색
+                    for (const kn of kList) {
+                        if (!kn.triggers || !kn.content) continue;
+                        const triggersArr = kn.triggers.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
                         
-                        // 감지 키워드 중 단 하나라도 매칭되면 즉시 키워드노트로 스왑 대체
-                        const hasHit = triggersArr.some(trig => scanPool.includes(trig));
+                        // 단일 단어 감지 혹은 && 단어의 일괄 매칭 감수 작동
+                        const hasHit = triggersArr.some(trig => {
+                            if (trig.includes("&&")) {
+                                const parts = trig.split("&&").map(p => p.trim()).filter(Boolean);
+                                return parts.length && parts.every(p => scanPool.includes(p));
+                            }
+                            return scanPool.includes(trig);
+                        });
+
                         if (hasHit) {
-                            activeNote = keywordNote;
-                            console.log(`[PASTEL:Note] 키워드 감지 성공! 유저노트가 키워드노트로 대체 주입됩니다.`);
+                            activeNote = kn.content; // 감지 즉시 해당 키워드노트로 완전히 스왑 대체
+                            console.log(`[PASTEL:Note] 키워드 [${kn.name}] 매칭 성공! 유저노트가 이 카드로 대체 주입됩니다.`);
+                            break; // 첫 매칭 카드 선점 후 탈출 (순정 3in1 흐름)
                         }
                     }
 
-                    // 수렴된 유저노트를 시스템 지침(Prompt) 하단에 OOC 형태로 물리 격리 결합
+                    // 최종 결정된 유저노트를 백그라운드 지시서 하단에 인젝션 결합
                     if (activeNote) {
                         prompt = `${prompt}\n\n[현재 세션 주입 정보 (User Note)]\n${activeNote}`;
                     }
