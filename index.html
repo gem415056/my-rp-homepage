@@ -987,15 +987,13 @@
             });
         }
 
-        // 플레이 버튼 터치 시 실제 DB 세션 개설 및 시작 장면 실시간 인젝션 작동
+        // 플레이 버튼 터치 시 실제 DB 세션 개설 및 시작 장면 실시간 인젝션 작동 (불필요한 확인 팝업 제거)
         function playStory(storyId, storyTitle, encodedStartMsg, encodedStartRef) {
             if (!userHash) return;
             const startMsg = decodeURIComponent(encodedStartMsg);
             const startRef = decodeURIComponent(encodedStartRef);
 
-            if (!confirm(`[${storyTitle}] 스토리를 기반으로 새로운 세션 방을 개설하여 플레이를 시작하시겠습니까?`)) return;
-
-            // 1. 에피소드방 신규 생성
+            // 1. 확인 팝업창 없이 즉시 에피소드방 신규 생성
             db.collection("system_verification").doc(userHash).collection("episodes").add({
                 storyId: storyId,
                 title: storyTitle, // 최초 방 제목은 스토리 제목을 따르며, 추후 사이드바 리네임 시 개별 격리 처리됩니다.
@@ -1151,24 +1149,32 @@
             return Math.ceil(tokens);
         }
 
-        // 구글 제미나이 API 전송 패킷 조립 및 실시간 비용 분석 처리
+        // 구글 제미나이 API 및 파이어베이스 Vertex AI 이중 엔진 통합 전송 기능
         async function sendUserMessage() {
             const inputArea = document.getElementById("chat-input");
             const text = inputArea.value.trim();
             if (!text || !userHash || !activeEpisodeId) return;
 
+            const apiType = localStorage.getItem("active_api_tab") || "gemini";
             const apiKey = localStorage.getItem("gemini_api_key");
+            const firebaseScript = localStorage.getItem("firebase_config_script");
             const selectedModel = localStorage.getItem("gemini_active_model") || "gemini-1.5-flash";
 
-            if (!apiKey) {
-                alert("우측 서랍 메뉴 [ 플레이 제어 ] 에서 Google Gemini API Key를 먼저 입력한 뒤 전송해 주십시오.");
+            // 선택한 탭에 맞게 타겟 입력값 유효성 정밀 대조 검증
+            if (apiType === "gemini" && !apiKey) {
+                alert("우측 서랍 메뉴 [ 플레이 제어 ] 에서 Google Gemini API Key를 먼저 입력해 주십시오.");
+                toggleRightDrawer();
+                return;
+            }
+            if (apiType === "firebase" && !firebaseScript) {
+                alert("우측 서랍 메뉴 [ 플레이 제어 ] 에서 Firebase Config Script를 먼저 입력해 주십시오.");
                 toggleRightDrawer();
                 return;
             }
 
             setButtonState(true);
             inputArea.value = ""; // 입력란 즉시 비우기
-            inputArea.style.height = "52px"; // 높이 초기화
+            inputArea.style.height = "116px"; // 5줄 높이 고정 유지
 
             try {
                 // 1. 유저 메시지 데이터베이스 저장
@@ -1204,37 +1210,64 @@
                     });
                 });
 
-                // 5. 20,000 토큰 한도 초과 감지 시 오래된 순서대로 슬라이싱 (오프닝 대사도 대화가 길어지면 자연스럽게 소멸 처리)
+                // 5. 20,000 토큰 한도 초과 감지 시 오래된 순서대로 슬라이싱 (Pruning)
                 let totalEstimatedTokens = estimateTokenCount(prompt);
                 contents.forEach(c => totalEstimatedTokens += estimateTokenCount(c.parts[0].text));
 
                 while (totalEstimatedTokens > 20000 && contents.length > 1) {
-                    // 첫 오프닝 대사부터 시작하여 최신 대화를 확보하기 위해 맨 앞(오래된 순)부터 밀어냅니다.
                     const removed = contents.shift();
                     totalEstimatedTokens -= estimateTokenCount(removed.parts[0].text);
                 }
 
-                // 6. 구글 API 비동기 전송 개시
+                // 6. 이중 통신 엔진 분기 구동
+                let responseText = "";
+                let resJson = null;
+
                 window.activeController = new AbortController();
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    signal: window.activeController.signal,
-                    body: JSON.stringify({
-                        systemInstruction: { parts: [{ text: prompt }] },
-                        contents: contents
-                    })
-                });
 
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error?.message || "API 전송 거부");
+                if (apiType === "gemini") {
+                    // [엔진 A] 구글 제미나이 다이렉트 패치 교신
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        signal: window.activeController.signal,
+                        body: JSON.stringify({
+                            systemInstruction: { parts: [{ text: prompt }] },
+                            contents: contents
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error?.message || "Gemini API 호출 오류");
+                    }
+
+                    resJson = await response.json();
+                    responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+                } else {
+                    // [엔진 B] 파이어베이스 SDK 활용 Vertex AI 직접 교신
+                    const config = parseFirebaseConfig(firebaseScript);
+                    if (!config) throw new Error("Firebase Config 분석 실패. 형식을 확인해 주십시오.");
+
+                    // 모듈러 SDK 동적 가져오기
+                    const fbAppModule = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+                    const fbAiModule = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-ai.js");
+
+                    const tempApp = fbAppModule.initializeApp(config, "pastel-temp-" + Date.now());
+                    const ai = fbAiModule.getAI(tempApp, { backend: new fbAiModule.VertexAIBackend('global') });
+                    
+                    const fbModel = fbAiModule.getGenerativeModel(ai, {
+                        model: selectedModel,
+                        systemInstruction: prompt
+                    });
+
+                    // SDK 규격에 맞게 contents 매핑 전송
+                    const response = await fbModel.generateContent({ contents: contents });
+                    responseText = response.response.text();
+                    resJson = response.response; // 비용 산정을 위해 인계
                 }
-
-                const resJson = await response.json();
-                const responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
                 if (responseText) {
                     // 7. AI 응답 데이터베이스 영구 기록
@@ -1244,22 +1277,24 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
 
-                    // 8. 모델 설정 요율에 입각한 정밀 비용(USD) 계산 ( pricing.js 이식 )
+                    // 8. 모델 설정 요율 및 실제 캐시 토큰 비례 정밀 비용(USD) 계산법 수립 (75% 캐싱 할인 완벽 동기화)
                     const MODEL_RATES = {
-                        "gemini-3.5-flash": { input: 0.0015 / 1000, output: 0.009 / 1000 }, // 지목 요율 이식
-                        "gemini-3.1-pro-preview": { input: 0.002 / 1000, output: 0.012 / 1000 },
-                        "gemini-3.1-flash-lite-preview": { input: 0.000075 / 1000, output: 0.0003 / 1000 },
-                        "gemini-2.5-pro": { input: 0.00125 / 1000, output: 0.005 / 1000 },
-                        "gemini-2.5-flash": { input: 0.0003 / 1000, output: 0.0015 / 1000 },
-                        "gemini-1.5-pro": { input: 0.00125 / 1000, output: 0.005 / 1000 },
-                        "gemini-1.5-flash": { input: 0.000075 / 1000, output: 0.0003 / 1000 }
+                        "gemini-3.5-flash": { input: 0.0015 / 1000, output: 0.009 / 1000, cached: 0.000375 / 1000 },
+                        "gemini-3.1-pro-preview": { input: 0.002 / 1000, output: 0.012 / 1000, cached: 0.0005 / 1000 },
+                        "gemini-3.1-flash-lite-preview": { input: 0.000075 / 1000, output: 0.0003 / 1000, cached: 0.00001875 / 1000 },
+                        "gemini-2.5-pro": { input: 0.00125 / 1000, output: 0.005 / 1000, cached: 0.0003125 / 1000 },
+                        "gemini-2.5-flash": { input: 0.0003 / 1000, output: 0.0015 / 1000, cached: 0.000075 / 1000 },
+                        "gemini-1.5-pro": { input: 0.00125 / 1000, output: 0.005 / 1000, cached: 0.0003125 / 1000 },
+                        "gemini-1.5-flash": { input: 0.000075 / 1000, output: 0.0003 / 1000, cached: 0.00001875 / 1000 }
                     };
 
                     const rate = MODEL_RATES[selectedModel] || MODEL_RATES["gemini-1.5-flash"];
-                    const inTokens = resJson.usageMetadata?.promptTokenCount || estimateTokenCount(prompt) + totalEstimatedTokens;
+                    const inTokens = resJson.usageMetadata?.promptTokenCount || (estimateTokenCount(prompt) + totalEstimatedTokens);
+                    const cachedTokens = resJson.usageMetadata?.cachedContentTokenCount || 0;
                     const outTokens = resJson.usageMetadata?.candidatesTokenCount || estimateTokenCount(responseText);
 
-                    const recentCost = (inTokens * rate.input) + (outTokens * rate.output);
+                    const uncachedTokens = Math.max(0, inTokens - cachedTokens);
+                    const recentCost = (cachedTokens * rate.cached) + (uncachedTokens * rate.input) + (outTokens * rate.output);
 
                     // 누적 비용 연산 업데이트
                     const epDoc = await db.collection("system_verification").doc(userHash).collection("episodes").doc(activeEpisodeId).get();
@@ -1334,6 +1369,19 @@
             }
             localStorage.setItem("active_api_tab", targetTab); // 탭 선택 영구 보존
             saveApiCredentials();
+        }
+
+        // 사용자가 붙여넣은 Firebase Config Script 텍스트에서 순수 설정 오브젝트만 정밀 축출하는 파서
+        function parseFirebaseConfig(scriptStr) {
+            try {
+                const clean = scriptStr.trim();
+                if (clean.startsWith("{")) return JSON.parse(clean);
+                const match = scriptStr.match(/firebaseConfig\s*=\s*(\{[\s\S]*?\});?/);
+                if (match && match[1]) {
+                    return new Function("return " + match[1])();
+                }
+            } catch (e) {}
+            return null;
         }
 
         // 사용자가 드롭다운에서 선택한 모델명을 브라우저에 실시간 저장 및 유지하는 함수
