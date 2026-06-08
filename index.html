@@ -10,7 +10,7 @@
             --bg-color: #FFFFFF;
             --text-color: #2C3E50;
             --border-color: #E6E6E6;
-            --border-dark-gray: #888888;
+            --border-dark-gray: #B0B0B0; /* 진해진 수직 점선 및 실선 색상 */
             --accent-color: #BCD0D8;
             --card-bg: #F9F9F9;
             --pastel-purple-bg: #F3EBF7;
@@ -18,7 +18,9 @@
             --active-purple: #D5C2DE;
             --gray-text: #888888;
             --danger-color: #FF4433;
-            --textarea-bg: #FAFAFA;
+            --textarea-bg: #FAFAFA; /* 훨씬 연해진 5줄 고정 회색 입력창 */
+            --send-btn-normal: #D5C2DE; /* 연보라 전송버튼 */
+            --send-btn-active: #888888;
         }
 
         body[data-theme="dark"] {
@@ -75,7 +77,7 @@
             display: none; width: 100%; height: 100%; flex-direction: column; position: relative;
         }
 
-        /* 1단: 최상단 고정 헤더 */
+        /* 1단: 최상단 PASTEL chat 전용 헤더 */
         .app-header {
             height: 48px; border-bottom: none;
             display: flex; align-items: center; justify-content: space-between;
@@ -128,14 +130,12 @@
 
         /* 에피소드 리스트 아이템 */
         .episode-row {
-            display: flex; align-items: center; gap: 4px; width: 100%; box-sizing: border-box;
+            display: flex; align-items: center; gap: 6px; width: 100%; box-sizing: border-box;
         }
-        .ep-delete-cb { display: none; width: 16px; height: 18px; cursor: pointer; margin: 0; }
         .episode-item {
-            flex: 1; padding: 8px 8px; font-size: 13px; color: var(--text-color); cursor: pointer;
+            flex: 1; padding: 8px 12px; font-size: 13px; color: var(--text-color); cursor: pointer;
             border-radius: 6px; transition: 0.2s; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .episode-item.active { background-color: var(--card-bg); font-weight: bold; }
         .episode-item:hover { background-color: var(--card-bg); }
         .ep-edit-btn { background: none; border: none; color: var(--gray-text); cursor: pointer; padding: 4px; font-size: 11px; }
 
@@ -157,13 +157,19 @@
             display: flex; flex-direction: column; gap: 16px;
         }
 
+        /* 에디터 상단 헤더 스티키(Sticky) 고정화 완성 */
+        #story-editor-panel .panel-header {
+            position: sticky; top: 0; background-color: var(--bg-color); z-index: 20;
+            padding: 10px 0; border-bottom: 1px solid var(--border-color);
+        }
+
         .panel-header {
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
         }
 
         .panel-title { font-size: 18px; font-weight: bold; }
 
-        /* 회색 테두리 기본 버튼 */
+        /* 버튼 양식 */
         .btn-gray-outline {
             border: 1px solid var(--border-color); background-color: var(--card-bg);
             color: var(--text-color); padding: 8px 16px; border-radius: 8px;
@@ -187,7 +193,6 @@
 
         /* 스토리 카드 디자인 */
         .story-row-wrap { display: flex; align-items: center; gap: 8px; width: 100%; }
-        .story-delete-cb { display: none; width: 18px; height: 18px; cursor: pointer; }
         .story-card {
             flex: 1; background-color: var(--card-bg); border: 1px solid var(--border-color);
             border-radius: 8px; padding: 16px; display: flex; justify-content: space-between;
@@ -217,33 +222,37 @@
         .char-counter { font-size: 10px; color: var(--gray-text); text-align: right; margin-top: -6px; }
         .char-counter.error { color: var(--danger-color); font-weight: bold; }
 
-        /* 대화방 내부 레이아웃 (구분 실선 전면 폐지, 간격 축소) */
+        /* 대화방 내부 레이아웃 */
         .chat-room-container {
             display: none; flex-direction: column; width: 100%; height: 100%; overflow: hidden;
         }
 
-        /* 2단: 스토리 제목 서브 헤더 (테두리 및 클릭이벤트 제거, 폰트 상향) */
+        /* 2단: 스토리 제목 서브 헤더 (알약형 테두리 적용, 높이 48px 상향) */
         .chat-sub-header {
-            height: 38px; border-bottom: none;
+            height: 48px; border-bottom: none;
             display: flex; align-items: center; justify-content: space-between;
+            font-size: 17px; font-weight: bold; color: var(--text-color);
             background-color: var(--bg-color);
             padding: 0 36px; box-sizing: border-box;
         }
 
         .chat-sub-title-text {
-            text-align: left; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            font-size: 19px; font-weight: bold; color: var(--text-color);
+            cursor: pointer; text-align: left; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            display: inline-block; border: 1px solid var(--active-purple); border-radius: 12px;
+            padding: 4px 14px; font-weight: bold; background-color: var(--bg-color); color: var(--text-color);
+            max-width: fit-content;
         }
+        .chat-sub-title-text:hover { filter: brightness(0.95); }
 
-        /* 3단: 비용 및 라디오존데 헤더 (수직 간격 축소 70% 보정, 경계구분 실선 추가) */
+        /* 3단: 비용 및 라디오존데 헤더 (수직 간격 70% 축소 38px 보정, 가로구분 실선 추가) */
         .chat-info-header {
-            height: 28px; border-bottom: 1px solid var(--border-color);
+            height: 32px; border-bottom: 1px solid var(--border-color);
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 36px; box-sizing: border-box; font-size: 12px; color: var(--gray-text);
-            background-color: var(--bg-color); margin-top: -4px;
+            padding: 0 36px; box-sizing: border-box; font-size: 13px; color: var(--gray-text);
+            background-color: var(--bg-color); margin-top: -6px;
         }
 
-        /* 대화창 내부 넓은 마진 레이아웃 (1.5배 증가: 36px 패딩) */
+        /* 대화창 내부 넓은 마진 레이아웃 (36px 패딩) */
         .chat-container {
             flex: 1; overflow-y: auto; box-sizing: border-box; padding: 20px 36px;
         }
@@ -260,7 +269,7 @@
             background-color: var(--pastel-purple-bg); color: var(--pastel-purple-text);
             font-weight: bold; border-radius: 4px; padding: 2px 6px; margin: 0 2px;
         }
-        /* 코드 블록 (둥근 모서리, 회색 테두리, 보송한 분홍빛 배경) */
+        /* 코드 블록 (둥근 모서리, 회색 테두리, 보송한 분홍빛 배경, 전체 볼드 해제) */
         .msg-card pre {
             background-color: #fff5ff; border: 1px solid var(--border-color);
             border-radius: 8px; padding: 12px; overflow-x: auto; margin: 8px 0;
@@ -269,15 +278,15 @@
         .msg-card pre code { font-family: monospace; color: var(--text-color); }
         body[data-theme="dark"] .msg-card pre { background-color: #382B3A; }
 
-        /* 인용구 스타일 (세로 실선 점선 연속 연동화, 색상 연화 배제) */
+        /* 인용구 스타일 (굵은 회색 세로 실선, 인용구 연속 정밀 연동) */
         .msg-card .quote-block {
-            border-left: 3px dotted var(--text-color); padding-left: 12px;
+            border-left: 4px solid var(--border-dark-gray); padding-left: 12px;
             margin: 0 0 0 8px; color: var(--text-color); display: block;
         }
         .msg-card .quote-block:first-of-type { margin-top: 8px; }
         .msg-card .quote-block:last-of-type { margin-bottom: 8px; }
 
-        /* 하단 입력 영역 (가로 분리 실선 제거) */
+        /* 하단 입력 영역 (대화창과 구분 가로 실선 완전 삭제) */
         .footer-control {
             border-top: none; padding: 8px 36px 16px 36px;
             display: flex; flex-direction: column; gap: 8px; box-sizing: border-box;
@@ -288,7 +297,7 @@
             display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-text);
         }
 
-        /* 단축기 입체 원형 테두리 단추 (배경 제거, 연회색 테두리 링 동그라미화) */
+        /* 단축기 원형 배경 단추 (연회색 아웃라인 동그라미) */
         .tool-btn {
             background-color: transparent; border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer;
             width: 24px; height: 24px; border-radius: 50%; font-size: 11px; transition: 0.2s;
@@ -299,19 +308,19 @@
         .tool-btn:hover { background-color: var(--card-bg); border-color: var(--border-dark-gray); }
         .vertical-divider { width: 1px; height: 14px; border-left: 1px dashed var(--border-dark-gray); margin: 0 2px; }
 
-        /* 업스크롤 입력창 내부 전송버튼 빌트인 탑재 */
+        /* 5줄 세로 크기 고정 입력창 및 원형 전송 버튼 빌트인 탑재 (relative 기반) */
         .input-area { display: flex; width: 100%; position: relative; box-sizing: border-box; }
         .input-area textarea {
-            flex: 1; height: 116px; border: 1px solid var(--border-color);
+            flex: 1; height: 116px; max-height: 116px; border: 1px solid var(--border-color);
             border-radius: 12px; background-color: var(--textarea-bg); color: var(--text-color);
             padding: 14px 44px 14px 12px; box-sizing: border-box; resize: none; font-size: 15px; outline: none;
             line-height: 20px; overflow-y: auto;
         }
 
-        /* 빌트인 연보라 32px 원형 버튼 (absolute) */
+        /* 빌트인 연보라 70% 축소 원형 버튼 (배경색 #D5C2DE 교정 완료) */
         .hold-btn {
             width: 32px; height: 32px; border-radius: 50%; border: none;
-            background-color: var(--active-purple); cursor: pointer;
+            background-color: var(--send-btn-normal); cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             position: absolute; right: 10px; bottom: 10px;
             box-sizing: border-box; padding: 0; transition: background-color 0.2s;
@@ -391,12 +400,12 @@
                 <div id="story-list-container" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
 
-            <!-- B. 스토리 생성/편집 독립형 에디터 화면 (넓고 큰 입력창 및 카드 배치 완성) -->
+            <!-- B. 스토리 생성/편집 독립형 에디터 화면 (저장 단추 배경색 #D5C2DE 반영) -->
             <div class="panel-container" id="story-editor-panel" style="display:none; padding-bottom: 40px;">
                 <div class="panel-header">
                     <button class="btn-gray-outline" onclick="showPanel('story-panel')">취소</button>
                     <span class="panel-title" id="editor-title-banner">스토리 생성</span>
-                    <button class="btn-gray-outline" onclick="saveStory()" id="story-save-btn">저장</button>
+                    <button class="btn-gray-outline" onclick="saveStory()" id="story-save-btn" style="background-color: var(--active-purple);">저장</button>
                 </div>
 
                 <!-- 섹션 1: 프로필 카드 -->
@@ -422,7 +431,7 @@
                     </div>
                 </div>
 
-                <!-- 섹션 3: 시작 설정 카드 (시작장면 200px, 시작참고 150px 교체 연동) -->
+                <!-- 섹션 3: 시작 설정 카드 -->
                 <div class="boxed-card">
                     <div class="card-subheader">시작 설정</div>
                     <div class="input-group">
@@ -450,7 +459,7 @@
 
             <!-- E. 실제 채팅 대화방 패널 -->
             <div class="chat-room-container" id="chat-room-panel">
-                <!-- 2단: 스토리 제목 서브 헤더 (왼쪽 정렬, 우측 설정 단축 SVG 버튼 장착) -->
+                <!-- 2단: 스토리 제목 서브 헤더 (왼쪽 정렬, 크기 상향, 우측 메뉴 단축 SVG 버튼 장착) -->
                 <div class="chat-sub-header">
                     <div class="chat-sub-title-text" id="active-room-header-title" onclick="openQuickPromptModal()"></div>
                     <button class="menu-trigger" onclick="openQuickPromptModal()" style="margin-right: 0;">
@@ -555,7 +564,6 @@
                     document.getElementById("login-screen").style.display = "none";
                     document.getElementById("app-screen").style.display = "flex";
                     loadStories();
-                    loadActiveRoomState(); // 이전에 보고 있던 활성방 상태 복원
                 } else {
                     alert(`비인가된 접근입니다.\n등록용 해시: ${hash}`);
                 }
@@ -572,13 +580,27 @@
             overlay.classList.toggle("active");
         }
 
-        function showPanel(panelId) {
+        // [정밀 보완]: 역사적 라우팅 뒤로가기(Back) 감수 장치 결합형 패널 스위칭
+        function showPanel(panelId, isPopState = false) {
             document.querySelectorAll(".panel-container, .chat-room-container").forEach(el => el.style.display = "none");
             document.getElementById(panelId).style.display = "flex";
             if (document.getElementById("app-sidebar").classList.contains("open")) {
                 toggleSidebar();
             }
+            if (!isPopState) {
+                // 뒤로가기 액션 취할 시 아카이브 첫 페이지(스토리 패널)로 돌아가기 위해 히스토리 유도
+                history.pushState({view: panelId}, "");
+            }
         }
+
+        // 스마트폰 자체 뒤로가기 및 브라우저 뒤로가기 키 가동 시 제어기 연동
+        window.addEventListener("popstate", (event) => {
+            if (event.state && event.state.view) {
+                showPanel(event.state.view, true);
+            } else {
+                showPanel("story-panel", true);
+            }
+        });
 
         // 글자 수 제한 실시간 체크 제어기
         let isSaveAllowed = true;
@@ -673,10 +695,6 @@
                     alert("스토리가 안전하게 수정되었습니다.");
                     showPanel("story-panel");
                     loadStories();
-                    // 만약 현재 수정 중이던 활성 대화방의 원본 스토리였다면, 방 이름 헤더 실시간 연동 업데이트
-                    if (localStorage.getItem("active_story_id") === currentStoryId) {
-                        document.getElementById("active-room-header-title").textContent = `🎬 ${title}`;
-                    }
                 }).catch(err => alert("수정 오류: " + err.message));
             } else {
                 storyData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -769,7 +787,6 @@
             });
         }
 
-        // 퀵 수정 팝업 취소 처리
         function closeQuickPromptModal() {
             document.getElementById("quick-prompt-modal").classList.remove("active");
         }
@@ -793,30 +810,22 @@
             }).catch(err => alert("적용 실패: " + err.message));
         }
 
-        // 지문 정밀 렌더링 파서 (지문 회색화, 백틱 가독성, 인용구 색상 보존, 코드블록 연보라 사각형 이식)
+        // 지문 정밀 렌더링 파서 (엔터 줄바꿈 정상 복구 및 코드블록 줄바꿈 완전 연동 완료)
         function renderCustomMarkdown(text) {
             let processed = text;
-            // 1단계: HTML 문자 보호 조치
             processed = processed.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            // 2단계: 코드 블록 선제 격리
             const preBlocks = [];
             processed = processed.replace(/```([\s\S]*?)```/g, function(match, code) {
                 const idx = preBlocks.length;
                 preBlocks.push('<pre><code>' + code.trim() + '</code></pre>');
                 return `@@@PRE_BLOCK_${idx}@@@`;
             });
-            // 3단계: 인라인 백틱 처리
             processed = processed.replace(/`([^`]+)`/g, '<span class="code-inline">$1</span>');
-            // 4단계: 볼드 및 이탤릭 지문 연동
             processed = processed.replace(/\*\*([^*]+)\*\*/g, '<span class="bold-txt">$1</span>');
             processed = processed.replace(/\*([^*]+)\*/g, '<span class="narration">*$1*</span>');
-            // 5단계: 대망의 엔터키(줄바꿈) HTML 복구
             processed = processed.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>');
-            // 6단계: 인용구 블록 렌더링
             processed = processed.replace(/^&gt;\s*(.+)$/gm, '<span class="quote-block">$1</span>');
-            // 7단계: 인용구 및 연속 줄바꿈 시 이중 줄바꿈 공백 이격 해제 정돈
             processed = processed.replace(/<\/span><br><span class="quote-block">/g, '</span><span class="quote-block">');
-            // 8단계: 코드 블록 원본 복구
             processed = processed.replace(/@@@PRE_BLOCK_(\d+)@@@/g, function(match, idx) {
                 return preBlocks[parseInt(idx)];
             });
@@ -829,11 +838,9 @@
             const startRef = decodeURIComponent(encodedStartRef);
 
             currentStoryId = storyId; // 활성 룸 바인딩
-            localStorage.setItem("active_story_id", storyId);
-            localStorage.setItem("active_story_title", storyTitle);
-            localStorage.setItem("active_start_msg", startMsg);
-            localStorage.setItem("active_start_ref", startRef);
-            localStorage.setItem("app_current_view", "chat-room-panel"); // 현재 뷰 상태 기록
+            sessionStorage.setItem("active_story_id", storyId);
+            sessionStorage.setItem("active_start_ref", startRef);
+            localStorage.setItem("active_story_id", storyId); // 새로고침 시 유지를 위해 영구 보존
 
             document.querySelectorAll(".panel-container").forEach(el => el.style.display = "none");
             const chatPanel = document.getElementById("chat-room-panel");
@@ -842,43 +849,16 @@
             // 서브 헤더 방 이름 주입 (왼쪽 정렬 완료)
             document.getElementById("active-room-header-title").textContent = `🎬 ${storyTitle}`;
 
-            // 첫 대사 AI 이름 배지 없이 대사 지문만 깨끗하게 즉시 출력
+            // 오프닝 첫 대사 AI 배지 없이 본문만 깔끔하게 렌더링
             const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = `
                 <div class="msg-card">
                     <span>${renderCustomMarkdown(startMsg || "*시작 장면 지문이 등록되지 않았습니다.*")}</span>
                 </div>
             `;
-
-            // 모바일 하드웨어 뒤로가기 가상 히스토리 흐름 강제 연동 (스파 차단용 pushState)
-            history.pushState({ view: "chat" }, null, "#chat");
-        }
-
-        // 모바일 하드웨어 뒤로가기 동작 수집 감시자 (popstate 시 스토리목록 회귀 연동)
-        window.onpopstate = function(event) {
-            const chatPanel = document.getElementById("chat-room-panel");
-            if (chatPanel.style.display === "flex") {
-                // 대화방이 활성화 중인 경우 닫고 스토리 패널로 돌려보냅니다.
-                document.querySelectorAll(".panel-container, .chat-room-container").forEach(el => el.style.display = "none");
-                document.getElementById("story-panel").style.display = "flex";
-                localStorage.setItem("app_current_view", "story-panel");
-            }
-        };
-
-        // 새로고침 시 플레이어 진입 세션 복원기
-        function loadActiveRoomState() {
-            const currentView = localStorage.getItem("app_current_view");
-            if (currentView === "chat-room-panel") {
-                const sId = localStorage.getItem("active_story_id");
-                const sTitle = localStorage.getItem("active_story_title");
-                const sMsg = localStorage.getItem("active_start_msg");
-                const sRef = localStorage.getItem("active_start_ref");
-                if (sId && sTitle) {
-                    playStory(sId, sTitle, encodeURIComponent(sMsg), encodeURIComponent(sRef));
-                }
-            } else if (currentView) {
-                showPanel(currentView);
-            }
+            
+            // 스토리 진입 시 히스토리 상으로도 밀어 넣어 뒤로가기 대응
+            history.pushState({view: "chat-room-panel"}, "");
         }
 
         // 에피소드 관리 및 체크박스 제어
@@ -935,22 +915,35 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" width="22" height="22"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
                 `;
             } else {
-                btn.style.backgroundColor = "var(--active-purple)";
+                btn.style.backgroundColor = "var(--send-btn-normal)";
                 btn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" width="22" height="22"><path d="M18.77 11.13 8.5 5.2a1 1 0 0 0-1.5 .87v11.86a1 1 0 0 0 1.5 .87l10.27-5.93a1 1 0 0 0 0-1.73z"></path></svg>
                 `;
             }
         }
 
-        // 새로고침 시 로그인 상태 세션 자동 복원 및 대화방 복구 가동
+        // 새로고침 시 로그인 상태 세션 자동 복원 장치 (룸 세션 완벽 보존)
         window.addEventListener("load", () => {
             const savedHash = localStorage.getItem("verified_user_hash");
             if (savedHash) {
                 userHash = savedHash;
                 document.getElementById("login-screen").style.display = "none";
                 document.getElementById("app-screen").style.display = "flex";
-                loadStories();
-                loadActiveRoomState(); // 이전에 플레이 중이던 대화방으로 자동 핫-리로드 연동 가동
+                
+                const activeRoomId = localStorage.getItem("active_story_id");
+                if (activeRoomId) {
+                    // 세션 대방 로딩
+                    db.collection("system_verification").doc(userHash).collection("stories").doc(activeRoomId).get().then((doc) => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            playStory(activeRoomId, data.title, encodeURIComponent(data.startMessage || ''), encodeURIComponent(data.startReference || ''));
+                        } else {
+                            loadStories();
+                        }
+                    }).catch(() => loadStories());
+                } else {
+                    loadStories();
+                }
             }
         });
     </script>
