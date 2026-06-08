@@ -1204,13 +1204,13 @@
                     });
                 });
 
-                // 5. 10,000 토큰 한도 초과 감지 시 가장 오래된 대화록부터 순차 슬라이싱 (Pruning)
+                // 5. 20,000 토큰 한도 초과 감지 시 오래된 순서대로 슬라이싱 (오프닝 대사도 대화가 길어지면 자연스럽게 소멸 처리)
                 let totalEstimatedTokens = estimateTokenCount(prompt);
                 contents.forEach(c => totalEstimatedTokens += estimateTokenCount(c.parts[0].text));
 
-                while (totalEstimatedTokens > 10000 && contents.length > 2) {
-                    // 최초 AI 오프닝 대사는 롤플레잉 흐름 보존을 위해 무조건 살려둡니다.
-                    const removed = contents.splice(1, 1)[0];
+                while (totalEstimatedTokens > 20000 && contents.length > 1) {
+                    // 첫 오프닝 대사부터 시작하여 최신 대화를 확보하기 위해 맨 앞(오래된 순)부터 밀어냅니다.
+                    const removed = contents.shift();
                     totalEstimatedTokens -= estimateTokenCount(removed.parts[0].text);
                 }
 
